@@ -1,0 +1,26 @@
+from django.urls import path
+
+from downTownMobile.app.views.customer.base import CustomerViewSet
+
+urlpatterns = [
+    path(
+        "customers/list/",
+        CustomerViewSet.as_view({"get": "list", "post": "create"}),
+        name="customer",
+    ),
+    # path(
+    #     "shops/customers/",
+    #     CustomerViewSet.as_view({"get": "list", "post": "create"}),
+    #     name="customer",
+    # ),
+    path(
+        "customers/<str:slug>/",
+        CustomerViewSet.as_view({
+            "get": "retrieve",
+            "put": "update",
+            "patch": "partial_update",
+            "delete": "destroy",
+        }),
+        name="customer",
+    ),
+]
