@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from downTownMobile.app.serializers.category import CategoryListSerializer
 from downTownMobile.app.serializers.manufacturer import ManufacturerListSerializer
+from downTownMobile.app.serializers.shop import ShopListSerializer
 from downTownMobile.app.serializers.tag import TagListSerializer
 from downTownMobile.app.serializers.type import TypeListSerializer
 from downTownMobile.db.models import Product
@@ -30,10 +31,12 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         categories = validated_data.pop('categories', [])
+        tags = validated_data.pop('tags', None)
 
         with transaction.atomic():
             product = Product.objects.create(**validated_data)
             product.categories.set(categories)
+            product.tags.set(tags)
 
         return product
 
@@ -58,6 +61,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     categories = CategoryListSerializer(many=True, read_only=True)
     tags = TagListSerializer(many=True, read_only=True)
     manufacturer = ManufacturerListSerializer(read_only=True)
+    shop = ShopListSerializer(read_only=True)
 
     class Meta:
         model = Product

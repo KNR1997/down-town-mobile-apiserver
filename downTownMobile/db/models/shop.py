@@ -14,6 +14,7 @@ class Shop(BaseModel):
     slug = models.SlugField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
+    balance = models.JSONField(default=dict, blank=True, null=True)
     settings = models.JSONField(default=dict, blank=True, null=True)
     cover_image = models.JSONField(default=dict, blank=True, null=True)
     logo = models.JSONField(default=dict, blank=True, null=True)

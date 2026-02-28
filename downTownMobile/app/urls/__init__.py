@@ -4,11 +4,14 @@ from .category import urlpatterns as category_urls
 from .customer import urlpatterns as customer_urls
 from .manufacturer import urlpatterns as manufacturer_urls
 from .product import urlpatterns as product_urls
+from .purchase import urlpatterns as purchase_urls
 from .settings import urlpatterns as settings_urls
 from .shop import urlpatterns as shop_urls
+from .supplier import urlpatterns as supplier_urls
 from .tag import urlpatterns as tag_urls
 from .type import urlpatterns as type_urls
 from .user import urlpatterns as user_urls
+from .warehouse import urlpatterns as warehouse_urls
 
 urlpatterns = [
     *attribute_urls,
@@ -22,4 +25,7 @@ urlpatterns = [
     *user_urls,
     *shop_urls,
     *customer_urls,
+    *warehouse_urls,
+    *supplier_urls,
+    *purchase_urls,
 ]

@@ -1,20 +1,18 @@
 from rest_framework import status
 from rest_framework.response import Response
 
-from downTownMobile.app.serializers.manufacturer import ManufacturerListSerializer, ManufacturerSerializer
+from downTownMobile.app.serializers.purchase import PurchaseListSerializer, PurchaseSerializer
 from downTownMobile.app.views.base import BaseViewSet
-from downTownMobile.db.models import Manufacturer
+from downTownMobile.db.models import Purchase
 
 
 # Create your views here.
-class ManufacturerViewSet(BaseViewSet):
-    model = Manufacturer
-    serializer_class = ManufacturerListSerializer
+class PurchaseViewSet(BaseViewSet):
+    model = Purchase
+    serializer_class = PurchaseListSerializer
 
-    search_fields = ['name']
+    search_fields = []
     filterset_fields = []
-
-    lookup_field = "slug"
 
     def get_queryset(self):
         return (
@@ -28,26 +26,26 @@ class ManufacturerViewSet(BaseViewSet):
         return super().retrieve(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
-        serializer = ManufacturerSerializer(data=request.data)
+        serializer = PurchaseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        manufacturer = serializer.save()
+        purchase = serializer.save()
 
-        output = self.serializer_class(manufacturer, context={"request": request}).data
+        output = self.serializer_class(purchase, context={"request": request}).data
         return Response(output, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
-        manufacturer = Manufacturer.objects.get(slug=kwargs["slug"])
+        purchase = Purchase.objects.get(slug=kwargs["slug"])
 
-        serializer = ManufacturerSerializer(
-            manufacturer,
+        serializer = PurchaseSerializer(
+            purchase,
             data=request.data,
             partial=True,
         )
         serializer.is_valid(raise_exception=True)
-        teacher = serializer.save()
+        purchase = serializer.save()
 
-        output = self.serializer_class(teacher, context={"request": request}).data
+        output = self.serializer_class(purchase, context={"request": request}).data
         return Response(output, status=status.HTTP_200_OK)
 
     def partial_update(self, request, *args, **kwargs):

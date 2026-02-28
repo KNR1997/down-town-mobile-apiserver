@@ -12,7 +12,7 @@ class ProductViewSet(BaseViewSet):
     serializer_class = ProductListSerializer
 
     search_fields = ['name']
-    filterset_fields = ['type__slug']
+    filterset_fields = ['type__slug', 'shop_id', 'categories__slug']
 
     lookup_field = "slug"
 
@@ -55,3 +55,39 @@ class ProductViewSet(BaseViewSet):
 
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+
+
+class DraftProductViewSet(BaseViewSet):
+    model = Product
+    serializer_class = ProductListSerializer
+
+    search_fields = ['name']
+    filterset_fields = ['type__slug', 'shop_id', 'status']
+
+    lookup_field = "slug"
+
+    def get_queryset(self):
+        return (
+            self.filter_queryset(super().get_queryset())
+        )
+
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+
+class LowStockProductViewSet(BaseViewSet):
+    model = Product
+    serializer_class = ProductListSerializer
+
+    search_fields = ['name']
+    filterset_fields = ['type__slug', 'shop_id', 'status']
+
+    lookup_field = "slug"
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = queryset.filter(quantity__lt=10)
+        return self.filter_queryset(queryset)
+
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)

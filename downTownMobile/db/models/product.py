@@ -39,6 +39,7 @@ class Product(BaseModel):
     tags = models.ManyToManyField('db.Tag', blank=True)
     author = models.ForeignKey('db.Author', blank=True, null=True, on_delete=models.SET_NULL, default=None)
     manufacturer = models.ForeignKey('db.Manufacturer', blank=True, null=True, on_delete=models.SET_NULL, default=None)
+    shop = models.ForeignKey('db.Shop', blank=True, null=True, on_delete=models.SET_NULL, default=None)
 
     def __str__(self):
         return self.name

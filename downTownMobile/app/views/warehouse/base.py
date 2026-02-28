@@ -1,20 +1,18 @@
 from rest_framework import status
 from rest_framework.response import Response
 
-from downTownMobile.app.serializers.manufacturer import ManufacturerListSerializer, ManufacturerSerializer
+from downTownMobile.app.serializers.warehouse import WarehouseListSerializer, WarehouseSerializer
 from downTownMobile.app.views.base import BaseViewSet
-from downTownMobile.db.models import Manufacturer
+from downTownMobile.db.models import Warehouse
 
 
 # Create your views here.
-class ManufacturerViewSet(BaseViewSet):
-    model = Manufacturer
-    serializer_class = ManufacturerListSerializer
+class WarehouseViewSet(BaseViewSet):
+    model = Warehouse
+    serializer_class = WarehouseListSerializer
 
     search_fields = ['name']
     filterset_fields = []
-
-    lookup_field = "slug"
 
     def get_queryset(self):
         return (
@@ -28,19 +26,19 @@ class ManufacturerViewSet(BaseViewSet):
         return super().retrieve(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
-        serializer = ManufacturerSerializer(data=request.data)
+        serializer = WarehouseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        manufacturer = serializer.save()
+        warehouse = serializer.save()
 
-        output = self.serializer_class(manufacturer, context={"request": request}).data
+        output = self.serializer_class(warehouse, context={"request": request}).data
         return Response(output, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
-        manufacturer = Manufacturer.objects.get(slug=kwargs["slug"])
+        warehouse = Warehouse.objects.get(pk=kwargs["pk"])
 
-        serializer = ManufacturerSerializer(
-            manufacturer,
+        serializer = WarehouseSerializer(
+            warehouse,
             data=request.data,
             partial=True,
         )

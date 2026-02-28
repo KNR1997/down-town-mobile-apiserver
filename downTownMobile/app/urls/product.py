@@ -1,7 +1,6 @@
 from django.urls import path
 
-from downTownMobile.app.views.product.base import ProductViewSet
-from downTownMobile.app.views.product.draft import DraftProductViewSet
+from downTownMobile.app.views.product.base import ProductViewSet, DraftProductViewSet, LowStockProductViewSet
 
 urlpatterns = [
     path(
@@ -23,5 +22,10 @@ urlpatterns = [
         "draft-products/",
         DraftProductViewSet.as_view({"get": "list"}),
         name="draft-product",
+    ),
+    path(
+        "products-stock/",
+        LowStockProductViewSet.as_view({"get": "list"}),
+        name="low-stock-product",
     ),
 ]
