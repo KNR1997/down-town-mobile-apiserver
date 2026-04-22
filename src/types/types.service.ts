@@ -1,33 +1,41 @@
 import { Injectable } from '@nestjs/common';
 import { UpdateTypeDto } from './dto/update-type.dto';
 import { CreateTypeDto } from './dto/create-type.dto';
-import { GetTypesDto } from './dto/get-types.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { EntityManager, Repository } from 'typeorm';
+import { Type } from './entities/type.entity';
 
 @Injectable()
 export class TypesService {
-  getTypes({ text, search }: GetTypesDto) {}
+  constructor(
+    @InjectRepository(Type)
+    private readonly typesRepository: Repository<Type>,
+    private readonly entityManager: EntityManager,
+  ) {}
 
-  getTypeBySlug(slug: string) {
-    return `This action returns all types`;
+  async create(createTypeDto: CreateTypeDto) {
+    const product = new Type(createTypeDto);
+    await this.entityManager.save(product);
   }
 
-  create(createTypeDto: CreateTypeDto) {
-    return `create type`;
+  async findAll() {
+    return this.typesRepository.find();
   }
 
-  findAll() {
-    return `This action returns all types`;
+  async findOne(id: number) {
+    return this.typesRepository.findOneBy({ id });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} type`;
+  async update(id: number, updateTypeDto: UpdateTypeDto) {
+    const type = await this.typesRepository.findOneBy({ id });
+    if (!type) {
+      return;
+    }
+    type.name = updateTypeDto.name;
+    await this.entityManager.save(type);
   }
 
-  update(id: number, updateTypeDto: UpdateTypeDto) {
-    return `Update type`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} type`;
+  async remove(id: number) {
+    await this.typesRepository.delete(id);
   }
 }

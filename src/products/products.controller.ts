@@ -1,34 +1,143 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiConflictResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import {
+  CreateProductResponseDto,
+  GetProductsDto,
+  ProductPaginator,
+  ProductResponseDto,
+  UpdateProductResponseDto,
+} from './dto/get-products.dto';
+import { plainToInstance } from 'class-transformer';
+import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 
+// @ApiBearerAuth()
+@ApiTags('products')
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
-  create(@Body() createProductDto: CreateProductDto) {
-    return this.productsService.create(createProductDto);
+  @ApiOperation({ summary: 'Create a new product' })
+  @ApiOkResponse({ type: CreateProductResponseDto })
+  @ApiConflictResponse({
+    description: 'Product with this slug already exists.',
+  })
+  @ApiBadRequestResponse({ description: 'Invalid data provided.' })
+  async createProduct(@Body() createProductDto: CreateProductDto) {
+    const product = await this.productsService.create(createProductDto);
+
+    const data = plainToInstance(ProductResponseDto, product, {
+      excludeExtraneousValues: true,
+    });
+
+    return new SuccessResponseDto<ProductResponseDto>({
+      message: 'Product created successfully',
+      statusCode: 201,
+      data,
+    });
   }
 
   @Get()
-  findAll() {
-    return this.productsService.findAll();
+  @ApiOperation({ summary: 'Get paginated products' })
+  @ApiOkResponse({
+    description: 'List of products retrieved successfully.',
+    type: ProductPaginator,
+  })
+  async getProducts(@Query() query: GetProductsDto): Promise<ProductPaginator> {
+    const result = await this.productsService.getProducts(query);
+
+    return {
+      ...result,
+      data: plainToInstance(ProductResponseDto, result.data, {
+        excludeExtraneousValues: true,
+      }),
+    };
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.productsService.findOne(+id);
+  @Get(':slug')
+  @ApiOperation({ summary: 'Get product by slug' })
+  @ApiOkResponse({
+    description: 'Get product by slug successful.',
+    type: ProductResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Product with slug not found.',
+  })
+  async getProductBySlug(@Param('slug') slug: string) {
+    const product = await this.productsService.getProductBySlug(slug);
+
+    const data = plainToInstance(ProductResponseDto, product, {
+      excludeExtraneousValues: true,
+    });
+
+    return new SuccessResponseDto<ProductResponseDto>({
+      message: 'Get product by slug successful.',
+      statusCode: 200,
+      data,
+    });
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-    return this.productsService.update(+id, updateProductDto);
+  @ApiOperation({ summary: 'Update a product' })
+  @ApiOkResponse({
+    description: 'Product updated successfully.',
+    type: UpdateProductResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Product with id not found.',
+  })
+  async update(
+    @Param('id') id: string,
+    @Body() updateProductDto: UpdateProductDto,
+  ) {
+    const product = await this.productsService.update(+id, updateProductDto);
+
+    const data = plainToInstance(ProductResponseDto, product, {
+      excludeExtraneousValues: true,
+    });
+
+    return new SuccessResponseDto<ProductResponseDto>({
+      message: 'Product updated successfully',
+      statusCode: 200,
+      data,
+    });
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.productsService.remove(+id);
+  @ApiOperation({ summary: 'Delete a product by id' })
+  @ApiOkResponse({
+    description: 'Product deleted successfully.',
+  })
+  @ApiNotFoundResponse({
+    description: 'Product with id not found.',
+  })
+  async remove(@Param('id') id: string) {
+    await this.productsService.remove(+id);
+
+    return new SuccessResponseDto({
+      message: 'Product deleted successfully',
+      statusCode: 200,
+      data: null,
+    });
   }
 }

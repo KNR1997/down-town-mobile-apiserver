@@ -20,27 +20,27 @@ export class TypesController {
   constructor(private readonly typesService: TypesService) {}
 
   @Post()
-  create(@Body() createTypeDto: CreateTypeDto) {
+  async create(@Body() createTypeDto: CreateTypeDto) {
     return this.typesService.create(createTypeDto);
   }
 
   @Get()
-  findAll(@Query() query: GetTypesDto) {
-    return this.typesService.getTypes(query);
+  async findAll(@Query() query: GetTypesDto) {
+    return this.typesService.findAll();
   }
 
-  @Get(':slug')
-  getTypeBySlug(@Param('slug') slug: string) {
-    return this.typesService.getTypeBySlug(slug);
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    return this.typesService.findOne(+id);
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() updateTypeDto: UpdateTypeDto) {
+  async update(@Param('id') id: string, @Body() updateTypeDto: UpdateTypeDto) {
     return this.typesService.update(+id, updateTypeDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string) {
     return this.typesService.remove(+id);
   }
 }

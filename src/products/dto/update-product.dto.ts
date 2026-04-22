@@ -1,4 +1,21 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateProductDto } from './create-product.dto';
+import { ApiProperty } from '@nestjs/swagger';
 
-export class UpdateProductDto extends PartialType(CreateProductDto) {}
+export class UpdateProductDto {
+  @ApiProperty({
+    description: 'The name of the product',
+    example: 'Apple',
+  })
+  name: string;
+
+  @ApiProperty({
+    description: 'The slug of the product',
+    example: 'apple',
+  })
+  slug: string;
+
+  @ApiProperty({
+    description: 'Is Product public or not',
+    example: true,
+  })
+  public: boolean;
+}
