@@ -1,9 +1,8 @@
-import { Column, PrimaryGeneratedColumn } from 'typeorm';
+import { CoreEntity } from 'src/common/entities/core.entity';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-export class Type {
-  @PrimaryGeneratedColumn()
-  id: number;
-
+@Entity()
+export class Type extends CoreEntity {
   @Column()
   name: string;
 
@@ -16,10 +15,11 @@ export class Type {
   @Column()
   language: string;
 
-  @Column()
+  @Column('simple-json', { default: ["en"] })
   translated_languages: string[];
 
-  constructor(item: Partial<Type>) {
+  constructor(item?: Partial<Type>) {
+    super();
     Object.assign(this, item);
   }
 }
