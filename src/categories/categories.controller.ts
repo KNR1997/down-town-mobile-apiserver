@@ -83,7 +83,7 @@ export class CategoriesController {
     type: CategoryResponseDto,
   })
   @ApiNotFoundResponse({
-    description: 'Product with slug not found.',
+    description: 'Category with slug not found.',
   })
   async getProductBySlug(@Param('slug') slug: string) {
     const category = await this.categoriesService.getCategoryBySlug(slug);

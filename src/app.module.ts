@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { ConfigModule } from '@nestjs/config';
 import { EpisodesModule } from './episodes/episodes.module';
 import { TopicsModule } from './topics/topics.module';
 import { TypesModule } from './types/types.module';
@@ -15,13 +14,27 @@ import { OrdersModule } from './orders/orders.module';
 import { SettingsModule } from './settings/settings.module';
 import { ManufacturersModule } from './manufacturers/manufacturers.module';
 import { CommonModule } from './common/common.module';
+import { AuthModule } from './auth/auth.module';
+import { User } from './users/entities/user.entity';
+import { Category } from './categories/entities/category.entity';
+import { Manufacturer } from './manufacturers/entities/manufacturer.entity';
+import { ShopsModule } from './shops/shops.module';
+import { Shop } from './shops/entities/shop.entity';
+import { Tag } from './tags/entities/tag.entity';
 
 @Module({
   imports: [
-    EpisodesModule,
-    TopicsModule,
+    ConfigModule.forRoot(),
+    AuthModule,
+    UsersModule,
     TypesModule,
     CategoriesModule,
+    ManufacturersModule,
+    ShopsModule,
+    TagsModule,
+    ProductsModule,
+    EpisodesModule,
+    TopicsModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
@@ -29,18 +42,14 @@ import { CommonModule } from './common/common.module';
       username: 'user',
       password: 'password',
       database: 'downtown-mobile',
-      entities: [Type, Product],
+      entities: [Type, Category, Manufacturer, Tag, Shop, Product, User],
       synchronize: true,
     }),
-    ProductsModule,
-    UsersModule,
-    TagsModule,
     OrdersModule,
     SettingsModule,
-    ManufacturersModule,
     CommonModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}
