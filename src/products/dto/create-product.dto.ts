@@ -1,4 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEnum } from 'class-validator';
+import { ProductStatus } from '../entities/product.entity';
 
 export class CreateProductDto {
   @ApiProperty({
@@ -18,4 +20,18 @@ export class CreateProductDto {
     example: true,
   })
   public: boolean;
+
+  @ApiProperty({
+    description: 'The Type id of the product',
+    example: 1,
+  })
+  type_id: number;
+
+  @ApiProperty({
+    description: 'The status of the product',
+    enum: ProductStatus,
+    example: ProductStatus.PUBLISH,
+  })
+  @IsEnum(ProductStatus)
+  status: ProductStatus;
 }

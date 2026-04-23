@@ -1,5 +1,5 @@
 import { PaginationArgs } from 'src/common/dto/pagination-args.dto';
-import { Product } from '../entities/product.entity';
+import { ProductStatus, ProductType } from '../entities/product.entity';
 import { Paginator } from 'src/common/dto/paginator.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
@@ -25,6 +25,22 @@ export class ProductResponseDto {
   })
   @Expose()
   slug: string;
+
+  @ApiProperty({
+    description: 'The type of the product',
+    enum: ProductType,
+    example: ProductType.SIMPLE,
+  })
+  @Expose()
+  product_type: ProductType;
+
+  @ApiProperty({
+    description: 'The status of the product',
+    enum: ProductStatus,
+    example: ProductStatus.PUBLISH,
+  })
+  @Expose()
+  status: ProductStatus;
 }
 
 export class CreateProductResponseDto {

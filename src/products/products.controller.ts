@@ -63,15 +63,21 @@ export class ProductsController {
     description: 'List of products retrieved successfully.',
     type: ProductPaginator,
   })
-  async getProducts(@Query() query: GetProductsDto): Promise<ProductPaginator> {
+  async getProducts(@Query() query: GetProductsDto) {
     const result = await this.productsService.getProducts(query);
 
-    return {
-      ...result,
-      data: plainToInstance(ProductResponseDto, result.data, {
-        excludeExtraneousValues: true,
-      }),
-    };
+    const data = plainToInstance(ProductResponseDto, result.data, {
+      excludeExtraneousValues: true,
+    });
+
+    return new SuccessResponseDto({
+      message: 'Get Products successfully',
+      statusCode: 200,
+      data: {
+        ...result,
+        data,
+      },
+    });
   }
 
   @Get(':slug')

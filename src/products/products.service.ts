@@ -19,16 +19,21 @@ export class ProductsService {
     private readonly entityManager: EntityManager,
   ) {}
 
-  async create(createProductDto: CreateProductDto): Promise<Product> {
-    const product = new Product(createProductDto);
+  async create(createDto: CreateProductDto): Promise<Product> {
     const exists = await this.productsRepository.exists({
-      where: { slug: createProductDto.slug },
+      where: { slug: createDto.slug },
     });
     if (exists) {
       throw new ConflictException(
-        `Product with slug "${createProductDto.slug}" already exists`,
+        `Product with slug "${createDto.slug}" already exists`,
       );
     }
+    const product = new Product();
+
+    product.name = createDto.name;
+    product.slug = createDto.slug;
+    product.status = createDto.status;
+
     return await this.entityManager.save(product);
   }
 
@@ -72,7 +77,7 @@ export class ProductsService {
 
   async update(
     id: number,
-    updateProductDto: UpdateProductDto,
+    updateDto: UpdateProductDto,
   ): Promise<Product> {
     const product = await this.productsRepository.findOneBy({ id });
 
@@ -80,9 +85,9 @@ export class ProductsService {
       throw new NotFoundException(`Product with id "${id}" not found`);
     }
 
-    product.name = updateProductDto.name;
-    product.slug = updateProductDto.slug;
-    product.public = updateProductDto.public;
+    product.name = updateDto.name;
+    product.slug = updateDto.slug;
+    product.status = updateDto.status;
 
     return await this.entityManager.save(product);
   }
