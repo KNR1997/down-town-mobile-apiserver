@@ -1,6 +1,8 @@
 import { ApiProperty, PickType } from '@nestjs/swagger';
-import { Expose } from 'class-transformer';
-import { IsEmail, IsString } from 'class-validator';
+import { Expose, Type } from 'class-transformer';
+import { IsArray, IsEmail, IsString } from 'class-validator';
+import { ShopResponseDto } from 'src/shops/dto/get-shops.dto';
+import { ProfileResponseDto } from 'src/users/dto/get-profile.dto';
 import { User } from 'src/users/entities/user.entity';
 
 enum Permission {
@@ -13,21 +15,21 @@ enum Permission {
 export class RegisterDto {
   @ApiProperty({
     description: 'The name of the user',
-    example: 'Alice',
+    example: 'John Doe',
   })
   @IsString()
   name: string;
 
   @ApiProperty({
     description: 'The email of the user',
-    example: 'alice@gmail.com',
+    example: 'admin@demo.com',
   })
   @IsEmail()
   email: string;
 
   @ApiProperty({
     description: 'The password of the user',
-    example: 'password',
+    example: 'demodemo',
   })
   @IsString()
   password: string;
@@ -66,14 +68,14 @@ export class AuthResponse {
 
 export class LoginDto {
   @ApiProperty({
-    description: 'The name of the product',
-    example: 'alice@gmail.com',
+    description: 'The email of the user account',
+    example: 'admin@demo.com',
   })
   email: string;
 
   @ApiProperty({
-    description: 'The slug of the product',
-    example: 'password',
+    description: 'The password of the user account',
+    example: 'demodemo',
   })
   password: string;
 }
@@ -81,7 +83,8 @@ export class LoginDto {
 export class LoginResponseDto {
   @ApiProperty({
     description: 'Access Token',
-    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.Wu8CHmArWyjZW9tT5AMpPIFrPixmHcQSady2U0JheA',
+    example:
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.Wu8CHmArWyjZW9tT5AMpPIFrPixmHcQSady2U0JheA',
   })
   @Expose()
   token: string;
@@ -107,7 +110,7 @@ export class MeResponseDto {
     example: '1',
   })
   @Expose()
-  userId: string;
+  id: number;
 
   @ApiProperty({
     description: 'The name of the login user',
@@ -122,4 +125,14 @@ export class MeResponseDto {
   })
   @Expose()
   email: string;
+
+  @ApiProperty({ type: ShopResponseDto, isArray: true })
+  @Expose()
+  @IsArray()
+  @Type(() => ShopResponseDto)
+  shops: ShopResponseDto[];
+
+  @Expose()
+  @Type(() => ProfileResponseDto)
+  profile: ProfileResponseDto;
 }

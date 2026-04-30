@@ -1,7 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  Query,
+  Put,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { GetUsersDto, UserResponseDto } from './dto/get-users.dto';
+import { plainToInstance } from 'class-transformer';
+import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 
 @Controller('users')
 export class UsersController {
@@ -13,22 +25,55 @@ export class UsersController {
   }
 
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  async findAll(@Query() query: GetUsersDto) {
+    const result = await this.usersService.getUsers(query);
+
+    const data = plainToInstance(UserResponseDto, result.data, {
+      excludeExtraneousValues: true,
+    });
+
+    return new SuccessResponseDto({
+      message: 'Get Users successfully',
+      statusCode: 200,
+      data: {
+        ...result,
+        data,
+      },
+    });
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
+  async findOne(@Param('id') id: number) {
+    const user = await this.usersService.findOne(id);
+
+    const data = plainToInstance(UserResponseDto, user, {
+      excludeExtraneousValues: true,
+    });
+
+    return new SuccessResponseDto<UserResponseDto>({
+      message: 'Get user by id successful.',
+      statusCode: 200,
+      data,
+    });
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+  @Put(':id')
+  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    const type = await this.usersService.update(+id, updateUserDto);
+
+    const data = plainToInstance(UserResponseDto, type, {
+      excludeExtraneousValues: true,
+    });
+
+    return new SuccessResponseDto<UserResponseDto>({
+      message: 'User updated successfully',
+      statusCode: 200,
+      data,
+    });
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
+  async remove(@Param('id') id: string) {
+    return await this.usersService.remove(+id);
   }
 }

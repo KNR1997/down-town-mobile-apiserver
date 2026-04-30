@@ -2,7 +2,8 @@ import { PaginationArgs } from 'src/common/dto/pagination-args.dto';
 import { ProductStatus, ProductType } from '../entities/product.entity';
 import { Paginator } from 'src/common/dto/paginator.dto';
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
+import { TypeResponseDto } from 'src/types/dto/get-types.dto';
 
 export class ProductResponseDto {
   @ApiProperty({
@@ -27,6 +28,41 @@ export class ProductResponseDto {
   slug: string;
 
   @ApiProperty({
+    description: 'The sku of the product',
+    example: 'apple',
+  })
+  @Expose()
+  sku: string;
+
+  @ApiProperty({
+    description: 'The unit of the product',
+    example: 'apple',
+  })
+  @Expose()
+  unit: string;
+
+  @ApiProperty({
+    description: 'The description of the product',
+    example: 'apple',
+  })
+  @Expose()
+  description: string;
+
+  @ApiProperty({
+    description: 'The price of the product',
+    example: 'apple',
+  })
+  @Expose()
+  price: number;
+
+  @ApiProperty({
+    description: 'The quantity of the product',
+    example: 'apple',
+  })
+  @Expose()
+  quantity: number;
+
+  @ApiProperty({
     description: 'The type of the product',
     enum: ProductType,
     example: ProductType.SIMPLE,
@@ -41,6 +77,19 @@ export class ProductResponseDto {
   })
   @Expose()
   status: ProductStatus;
+
+  @ApiProperty({ type: TypeResponseDto })
+  @Expose()
+  @Type(() => TypeResponseDto)
+  type: TypeResponseDto;
+
+  @ApiProperty({
+    description: 'The translated languages of the product',
+    example: 'apple',
+    isArray: true,
+  })
+  @Expose()
+  translated_languages: string[];
 }
 
 export class CreateProductResponseDto {

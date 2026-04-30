@@ -21,6 +21,13 @@ import { Manufacturer } from './manufacturers/entities/manufacturer.entity';
 import { ShopsModule } from './shops/shops.module';
 import { Shop } from './shops/entities/shop.entity';
 import { Tag } from './tags/entities/tag.entity';
+import { AuthorsModule } from './authors/authors.module';
+import { Author } from './authors/entities/author.entity';
+import { Profile } from './users/entities/profile.entity';
+import { Address } from './users/entities/address.entity';
+import { Order } from './orders/entities/order.entity';
+import { OrderItem } from './orders/entities/order-item.entity';
+import { CustomersModule } from './customers/customers.module';
 
 @Module({
   imports: [
@@ -42,12 +49,27 @@ import { Tag } from './tags/entities/tag.entity';
       username: 'user',
       password: 'password',
       database: 'downtown-mobile',
-      entities: [Type, Category, Manufacturer, Tag, Shop, Product, User],
+      entities: [
+        Type,
+        Category,
+        Manufacturer,
+        Tag,
+        Shop,
+        Product,
+        User,
+        Author,
+        Profile,
+        Address,
+        Order,
+        OrderItem,
+      ],
       synchronize: true,
     }),
     OrdersModule,
     SettingsModule,
     CommonModule,
+    AuthorsModule,
+    CustomersModule,
   ],
   controllers: [],
   providers: [],

@@ -1,4 +1,5 @@
 import { CoreEntity } from 'src/common/entities/core.entity';
+import { Shop } from 'src/shops/entities/shop.entity';
 import { Type } from 'src/types/entities/type.entity';
 import { Column, Entity, Index, ManyToOne } from 'typeorm';
 
@@ -21,10 +22,27 @@ export class Product extends CoreEntity {
   @Column()
   slug: string;
 
-  @ManyToOne(() => Type, (type) => type.categories, {
+  @ManyToOne(() => Type, (type) => type.products, {
     onDelete: 'CASCADE',
   })
   type?: Type;
+
+  @ManyToOne(() => Shop, (shop) => shop.products, {
+    onDelete: 'CASCADE',
+  })
+  shop?: Shop;
+
+  @Column({ nullable: true })
+  sku: string;
+
+  @Column()
+  unit: string;
+
+  @Column()
+  price: number;
+
+  @Column()
+  quantity: number;
 
   @Column({
     type: 'enum',
@@ -39,6 +57,15 @@ export class Product extends CoreEntity {
     default: ProductStatus.PUBLISH,
   })
   status: ProductStatus;
+
+  @Column({ nullable: true })
+  description?: string;
+
+  @Column()
+  language: string;
+
+  @Column('simple-json', { default: ['en'] })
+  translated_languages: string[];
 
   constructor(item?: Partial<Product>) {
     super();

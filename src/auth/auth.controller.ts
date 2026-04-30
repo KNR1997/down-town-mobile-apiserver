@@ -25,10 +25,17 @@ import {
 } from '@nestjs/swagger';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 import { plainToInstance } from 'class-transformer';
+import { ShopsService } from 'src/shops/shops.service';
+import { UpdateEmailDto } from './dto/update-email.dto';
+import { UsersService } from 'src/users/users.service';
 
 @Controller('')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly shopsService: ShopsService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @Post('register')
   @ApiOperation({ summary: 'Register new user' })
@@ -87,12 +94,22 @@ export class AuthController {
     type: MeResponseDto,
   })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
-  getUserInfo(@Request() request) {
-    const result = request.user;
+  async getUserInfo(@Request() request) {
+    const requestUser = request.user;
 
-    const data = plainToInstance(MeResponseDto, result, {
-      excludeExtraneousValues: true,
-    });
+    const user = await this.usersService.findOne(requestUser.userId);
+    const shops = await this.shopsService.getMyShops(request.user.userId);
+
+    const data = plainToInstance(
+      MeResponseDto,
+      {
+        ...user,
+        shops,
+      },
+      {
+        excludeExtraneousValues: true,
+      },
+    );
 
     return new SuccessResponseDto({
       message: 'Logged in user details retrieve successfully.',
@@ -111,5 +128,21 @@ export class AuthController {
       message: 'Logout successfully',
       statusCode: 200,
     });
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard)
+  @Post('update-email')
+  @ApiOperation({ summary: 'Update email' })
+  @ApiOkResponse({
+    description: 'Email updated successfully.',
+    type: MeResponseDto,
+  })
+  async updateEmail(
+    @Request() request,
+    @Body() updateEmailDto: UpdateEmailDto,
+  ) {
+    const userId = request.user.userId;
+    await this.authService.updateEmail(userId, updateEmailDto);
   }
 }

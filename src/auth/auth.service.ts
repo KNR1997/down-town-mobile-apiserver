@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { RegisterDto } from './dto/create-auth.dto';
@@ -8,6 +9,8 @@ import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User } from 'src/users/entities/user.entity';
+import { UpdateEmailDto } from './dto/update-email.dto';
+import { UpdateUserDto } from 'src/users/dto/update-user.dto';
 
 type AuthInput = { email: string; password: string };
 type SignInData = { userId: number; name: string; email: string };
@@ -84,5 +87,20 @@ export class AuthService {
       username: user.email,
       userId: user.userId,
     };
+  }
+
+  async updateEmail(userId: number, updateEmailDto: UpdateEmailDto) {
+    const user = await this.usersService.findOne(userId);
+
+    if (!user) {
+      throw new NotFoundException(`User with id "${userId}" not found`);
+    }
+
+    const updateUserDto = new UpdateUserDto();
+
+    updateUserDto.name = user.name;
+    updateUserDto.email = updateEmailDto.email;
+
+    this.usersService.update(userId, updateUserDto);
   }
 }

@@ -25,9 +25,9 @@ export class CreateShopDto {
   @IsOptional()
   description?: string;
 
-  @ApiProperty({
-    description: 'The owner id of the shop',
-    example: 1,
-  })
-  owner_id: number;
+  // @ApiProperty({
+  //   description: 'The owner id of the shop',
+  //   example: 1,
+  // })
+  // owner_id: number;
 }

@@ -6,6 +6,7 @@ import { Shop } from './entities/shop.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Shop])],
+  exports: [ShopsService],
   controllers: [ShopsController],
   providers: [ShopsService],
 })

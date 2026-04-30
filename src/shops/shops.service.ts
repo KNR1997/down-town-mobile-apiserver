@@ -7,6 +7,7 @@ import { Repository } from 'typeorm';
 import slugify from 'slugify';
 import { GetShopsDto } from './dto/get-shops.dto';
 import { paginate } from 'src/common/pagination/paginate';
+import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class ShopsService {
@@ -15,7 +16,7 @@ export class ShopsService {
     private readonly shopsRepository: Repository<Shop>,
   ) {}
 
-  async create(createDto: CreateShopDto): Promise<Shop> {
+  async create(createDto: CreateShopDto, requestUser: any): Promise<Shop> {
     const shop = new Shop();
 
     const slug = slugify(createDto.name, {
@@ -27,7 +28,7 @@ export class ShopsService {
     shop.name = createDto.name;
     shop.slug = slug;
     shop.description = createDto.description;
-    shop.owner = { id: createDto.owner_id } as any;
+    shop.owner = { id: requestUser.userId } as any;
 
     return await this.shopsRepository.save(shop);
   }
@@ -84,5 +85,17 @@ export class ShopsService {
       throw new NotFoundException(`Shop with id "${id}" not found`);
     }
     await this.shopsRepository.delete(id);
+  }
+
+  async getMyShops(owner_id: number): Promise<Shop[]> {
+    const shops = await this.shopsRepository.find({
+      where: {
+        owner: {
+          id: owner_id
+        }
+      },
+    });
+
+    return shops;
   }
 }

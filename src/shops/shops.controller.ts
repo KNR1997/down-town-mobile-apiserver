@@ -7,6 +7,8 @@ import {
   Delete,
   Query,
   Put,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { ShopsService } from './shops.service';
 import { CreateShopDto } from './dto/create-shop.dto';
@@ -19,24 +21,31 @@ import {
 import { plainToInstance } from 'class-transformer';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 import {
+  ApiBearerAuth,
   ApiConflictResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
 } from '@nestjs/swagger';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
 
 @Controller('shops')
 export class ShopsController {
   constructor(private readonly shopsService: ShopsService) {}
 
   @Post()
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Create a new shop' })
   @ApiOkResponse({ type: CreateShopDto })
   @ApiConflictResponse({
     description: 'Shop with this slug already exists.',
   })
-  async create(@Body() createShopDto: CreateShopDto) {
-    const category = await this.shopsService.create(createShopDto);
+  async create(@Body() createShopDto: CreateShopDto, @Request() request) {
+    const category = await this.shopsService.create(
+      createShopDto,
+      request.user,
+    );
 
     const data = plainToInstance(ShopResponseDto, category, {
       excludeExtraneousValues: true,
