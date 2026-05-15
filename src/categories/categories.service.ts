@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { GetCategoriesDto } from './dto/get-categories.dto';
 import { Category } from './entities/category.entity';
@@ -14,16 +14,30 @@ export class CategoriesService {
     @InjectRepository(Category)
     private readonly categoriesRepository: Repository<Category>,
     private readonly entityManager: EntityManager,
-  ) {}
+  ) { }
 
   async create(createDto: CreateCategoryDto): Promise<Category> {
-    const category = new Category();
+    // Use provided slug or generate one from name
+    const slug =
+      createDto.slug ||
+      slugify(createDto.name, {
+        lower: true,
+        strict: true,
+        trim: true,
+      });
 
-    const slug = slugify(createDto.name, {
-      lower: true,
-      strict: true,
-      trim: true,
+    // Check only after slug is determined
+    const exists = await this.categoriesRepository.exists({
+      where: { slug },
     });
+
+    if (exists) {
+      throw new ConflictException(
+        `Category with slug "${slug}" already exists`,
+      );
+    }
+
+    const category = new Category();
 
     category.name = createDto.name;
     category.slug = slug;
@@ -111,8 +125,24 @@ export class CategoriesService {
       throw new NotFoundException(`Category with id "${id}" not found`);
     }
 
+    const slug = slugify(updateDto.name, {
+      lower: true,
+      strict: true,
+      trim: true,
+    });
+
+    if (slug !== category.slug) {
+      const exists = await this.categoriesRepository.exists({
+        where: { slug },
+      });
+
+      if (exists) {
+        throw new ConflictException(`Category with slug "${slug}" already exists`);
+      }
+    }
+
     category.name = updateDto.name;
-    category.slug = updateDto.slug;
+    category.slug = slug;
     category.icon = updateDto.icon;
     category.details = updateDto.details;
     category.type = { id: updateDto.type_id } as any;
