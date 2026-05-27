@@ -27,20 +27,20 @@ export class OrdersService {
   async create(createOrderDto: CreateOrderDto) {
     const order = new Order();
 
-    const customer = await this.userRepository.findOne({
-      where: { id: createOrderDto.customer_id },
-    });
+    // const customer = await this.userRepository.findOne({
+    //   where: { id: createOrderDto.customer_id },
+    // });
 
-    if (!customer) {
-      throw new NotFoundException(
-        `Customer with id "${createOrderDto.customer_id}" not found`,
-      );
-    }
+    // if (!customer) {
+    //   throw new NotFoundException(
+    //     `Customer with id "${createOrderDto.customer_id}" not found`,
+    //   );
+    // }
 
     order.tracking_number = uuidv4();
-    order.customer = { id: createOrderDto.customer_id } as any;
+    // order.customer = { id: createOrderDto.customer_id } as any;
     order.customer_contact = createOrderDto.customer_contact;
-    order.customer_name = customer.name;
+    order.customer_name = createOrderDto.customer_name;
     order.amount = createOrderDto.amount;
     order.paid_total = createOrderDto.amount;
     order.total = createOrderDto.amount;

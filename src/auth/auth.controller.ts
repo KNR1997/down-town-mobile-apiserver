@@ -79,8 +79,8 @@ export class AuthController {
       statusCode: 200,
       data: {
         ...data,
-        permissions: ['store_owner', 'super_admin'],
-        role: 'super_admin',
+        permissions: result.permissions,
+        role: result.role,
       },
     });
   }

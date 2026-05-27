@@ -15,7 +15,14 @@ import { Order } from 'src/orders/entities/order.entity';
 export enum RoleType {
   SUPER_ADMIN = 'super_admin',
   STORE_OWNER = 'store_owner',
+  STAFF = 'staff',
   CUSTOMER = 'customer',
+}
+
+export enum PermissionType {
+  SUPER_ADMIN = 'super_admin',
+  STORE_OWNER = 'store_owner',
+  STAFF = 'staff',
 }
 
 @Entity()
@@ -38,7 +45,15 @@ export class User extends CoreEntity {
     enum: RoleType,
     default: RoleType.SUPER_ADMIN,
   })
-  role: string;
+  role: RoleType;
+
+  @Column({
+    type: 'enum',
+    enum: PermissionType,
+    array: true,
+    default: [],
+  })
+  permissions: PermissionType[];
 
   @OneToMany(() => Shop, (shop) => shop.owner)
   shops?: Shop[];

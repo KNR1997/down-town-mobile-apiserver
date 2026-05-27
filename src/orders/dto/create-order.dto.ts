@@ -9,12 +9,12 @@ export class OrderProductDto {
 }
 
 export class CreateOrderDto {
-  @ApiProperty({
-    description: 'The customer_id of the order',
-    example: '1',
-  })
-  @IsNumber()
-  customer_id: number;
+  // @ApiProperty({
+  //   description: 'The customer_id of the order',
+  //   example: '1',
+  // })
+  // @IsNumber()
+  // customer_id: number;
 
   @ApiProperty({
     description: 'The amount of the order',
@@ -23,6 +23,18 @@ export class CreateOrderDto {
   @IsNumber()
   amount: number;
 
+  @ApiProperty({
+    description: 'The customer name of the order',
+    example: 'Sameera Perera',
+  })
+  @IsString()
+  customer_name: string;
+
+  @ApiProperty({
+    description: 'The customer contact of the order',
+    example: '0786753212',
+  })
+  @IsString()
   customer_contact: string;
 
   products: OrderProductDto[];

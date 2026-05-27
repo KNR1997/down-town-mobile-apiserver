@@ -2,7 +2,7 @@ import { SortOrder } from 'src/common/dto/generic-conditions.dto';
 import { PaginationArgs } from 'src/common/dto/pagination-args.dto';
 import { Paginator } from 'src/common/dto/paginator.dto';
 
-import { User } from '../entities/user.entity';
+import { PermissionType, User } from '../entities/user.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { AddressDto, AddressResponseDto } from './address.dto';
@@ -38,6 +38,21 @@ export class UserResponseDto {
   @Expose()
   @Type(() => AddressResponseDto)
   addresses: AddressResponseDto[];
+
+  @ApiProperty({
+    description: 'The active status of the user',
+  })
+  @Expose()
+  is_active: boolean;
+
+  @ApiProperty({
+    description: 'Permissions of the user',
+    enum: PermissionType,
+    isArray: true,
+    example: ['store_owner', 'staff'],
+  })
+  @Expose()
+  permissions: PermissionType[];
 }
 
 export class GetUsersDto extends PaginationArgs {

@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import {  Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GetProductsDto } from './dto/get-products.dto';
@@ -17,24 +17,30 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
-  ) {}
+  ) { }
 
   async create(createDto: CreateProductDto): Promise<Product> {
+    // Use provided slug or generate one from name
+    const slug =
+      createDto.slug ||
+      slugify(createDto.name, {
+        lower: true,
+        strict: true,
+        trim: true,
+      });
+
+    // Check only after slug is determined
     const exists = await this.productsRepository.exists({
-      where: { slug: createDto.slug },
+      where: { slug },
     });
+
     if (exists) {
       throw new ConflictException(
-        `Product with slug "${createDto.slug}" already exists`,
+        `Product with slug "${slug}" already exists`,
       );
     }
-    const product = new Product();
 
-    const slug = slugify(createDto.name, {
-      lower: true,
-      strict: true,
-      trim: true,
-    });
+    const product = new Product();
 
     product.name = createDto.name;
     product.slug = slug;

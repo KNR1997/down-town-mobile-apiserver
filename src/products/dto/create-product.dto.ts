@@ -13,7 +13,7 @@ export class CreateProductDto {
     description: 'The slug of the product',
     example: 'apple',
   })
-  slug: string;
+  slug?: string;
 
   @ApiProperty({
     description: 'The sku of the product',

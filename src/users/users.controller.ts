@@ -14,6 +14,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { GetUsersDto, UserResponseDto } from './dto/get-users.dto';
 import { plainToInstance } from 'class-transformer';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
+import { PermissionType, RoleType } from './entities/user.entity';
 
 @Controller('users')
 export class UsersController {
@@ -21,7 +22,13 @@ export class UsersController {
 
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+    return this.usersService.create({
+      name: createUserDto.name,
+      email: createUserDto.email,
+      password: createUserDto.password,
+      role: RoleType.STAFF,
+      permissions: [PermissionType.STAFF],
+    });
   }
 
   @Get()

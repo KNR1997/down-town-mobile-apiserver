@@ -86,6 +86,7 @@ export class Order extends CoreEntity {
   payment_status: string;
 
   @ManyToOne(() => User, (user) => user.orders, {
+    nullable: true,
     onDelete: 'CASCADE',
   })
   customer?: User;
