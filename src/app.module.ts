@@ -28,9 +28,33 @@ import { Address } from './users/entities/address.entity';
 import { Order } from './orders/entities/order.entity';
 import { OrderItem } from './orders/entities/order-item.entity';
 import { CustomersModule } from './customers/customers.module';
+import { LoggerModule } from 'nestjs-pino';
 
 @Module({
   imports: [
+    LoggerModule.forRoot({
+      pinoHttp: {
+        level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+        // redact: ['req.headers.authorization', 'req.headers.cookie'],
+        serializers: {
+          req(req) {
+            return {
+              method: req.method,
+              url: req.url,
+            };
+          },
+        },
+        transport:
+          process.env.NODE_ENV !== 'production'
+            ? {
+                target: 'pino-pretty',
+                options: {
+                  colorize: true,
+                },
+              }
+            : undefined,
+      },
+    }),
     ConfigModule.forRoot(),
     AuthModule,
     UsersModule,
