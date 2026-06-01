@@ -11,13 +11,17 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { GetProductsDto } from './dto/get-products.dto';
 import { paginate } from 'src/common/pagination/paginate';
 import slugify from 'slugify';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
-  ) { }
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(ProductsService.name);
+  }
 
   async create(createDto: CreateProductDto): Promise<Product> {
     // Use provided slug or generate one from name
@@ -35,9 +39,11 @@ export class ProductsService {
     });
 
     if (exists) {
-      throw new ConflictException(
-        `Product with slug "${slug}" already exists`,
+      this.logger.warn(
+        { slug },
+        'Product creation failed: slug already exists',
       );
+      throw new ConflictException(`Product with slug "${slug}" already exists`);
     }
 
     const product = new Product();
@@ -54,7 +60,12 @@ export class ProductsService {
     product.shop = { id: createDto.shop_id } as any;
     product.language = createDto.language;
 
-    return await this.productsRepository.save(product);
+    const saved = await this.productsRepository.save(product);
+    this.logger.info(
+      { productId: saved.id, slug: saved.slug },
+      'Product created',
+    );
+    return saved;
   }
 
   async getProducts({ limit = 30, page = 1, search }: GetProductsDto) {
@@ -90,6 +101,7 @@ export class ProductsService {
     });
 
     if (!product) {
+      this.logger.warn({ slug }, 'Product not found');
       throw new NotFoundException(`Product with slug "${slug}" not found`);
     }
 
@@ -100,6 +112,7 @@ export class ProductsService {
     const product = await this.productsRepository.findOneBy({ id });
 
     if (!product) {
+      this.logger.warn({ productId: id }, 'Product update failed: not found');
       throw new NotFoundException(`Product with id "${id}" not found`);
     }
 
@@ -121,14 +134,18 @@ export class ProductsService {
     product.shop = { id: updateDto.shop_id } as any;
     product.language = updateDto.language;
 
-    return await this.productsRepository.save(product);
+    const updated = await this.productsRepository.save(product);
+    this.logger.info({ productId: id }, 'Product updated');
+    return updated;
   }
 
   async remove(id: number) {
     const product = await this.productsRepository.findOneBy({ id });
     if (!product) {
+      this.logger.warn({ productId: id }, 'Product delete failed: not found');
       throw new NotFoundException(`Product with id "${id}" not found`);
     }
     await this.productsRepository.delete(id);
+    this.logger.info({ productId: id }, 'Product deleted');
   }
 }
