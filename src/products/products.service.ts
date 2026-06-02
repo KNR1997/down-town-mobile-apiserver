@@ -76,7 +76,7 @@ export class ProductsService {
     if (search) {
       const parseSearchParams = search.split(';');
 
-      const allowedProfuctFields = ['name'];
+      const allowedProductFields = ['name', 'status'];
 
       for (const param of parseSearchParams) {
         const [key, value] = param.split(':');
@@ -86,7 +86,11 @@ export class ProductsService {
         const paramKey = key.replace('.', '_');
 
         // Product fields
-        if (allowedProfuctFields.includes(key)) {
+        if (key === 'status') {
+          query.andWhere(`product.status = :${paramKey}`, {
+            [paramKey]: value,
+          });
+        } else if (allowedProductFields.includes(key)) {
           query.andWhere(`product.${key} ILIKE :${paramKey}`, {
             [paramKey]: `%${value}%`,
           });
