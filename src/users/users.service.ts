@@ -77,6 +77,37 @@ export class UsersService {
 
     const query = this.userRepository.createQueryBuilder('user');
 
+    if (search) {
+      const parseSearchParams = search.split(';');
+
+      const allowedUserFields = ['name'];
+      const allowedProfileFields = ['contact'];
+
+      for (const param of parseSearchParams) {
+        const [key, value] = param.split(':');
+
+        if (!key || !value) continue;
+
+        const paramKey = key.replace('.', '_');
+
+        // User fields
+        if (allowedUserFields.includes(key)) {
+          query.andWhere(`user.${key} ILIKE :${paramKey}`, {
+            [paramKey]: `%${value}%`,
+          });
+        }
+
+        // Profile fields
+        if (allowedProfileFields.includes(key)) {
+          if (allowedProfileFields.includes(key)) {
+            query.andWhere(`profile.${key} ILIKE :${paramKey}`, {
+              [paramKey]: `%${value}%`,
+            });
+          }
+        }
+      }
+    }
+
     const [data, total] = await query.skip(skip).take(limit).getManyAndCount();
 
     const url = `/products?search=${search ?? ''}&limit=${limit}`;
