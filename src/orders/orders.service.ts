@@ -74,42 +74,47 @@ export class OrdersService {
     return await this.orderRepository.save(order);
   }
 
-  async getOrders({ limit = 30, page = 1, search, parent }: GetOrdersDto) {
+  async getOrders({
+    limit = 30,
+    page = 1,
+    search,
+    orderBy,
+    sortedBy,
+  }: GetOrdersDto) {
     const skip = (page - 1) * limit;
 
     const query = this.orderRepository
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.customer', 'customer');
 
-    // Optional search
+    // SAFE SORTING
+    const allowedOrderByFields = ['created_at', 'total', 'customer_name'];
+
+    const safeOrderBy = allowedOrderByFields.includes(orderBy)
+      ? orderBy
+      : 'created_at';
+
+    const safeSortedBy = sortedBy?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+    query.orderBy(`order.${safeOrderBy}`, safeSortedBy);
+
+    // SEARCH
     if (search) {
       const parseSearchParams = search.split(';');
 
       const allowedOrderFields = ['tracking_number'];
-      // const allowedProfileFields = ['contact'];
 
       for (const param of parseSearchParams) {
         const [key, value] = param.split(':');
-
         if (!key || !value) continue;
 
         const paramKey = key.replace('.', '_');
 
-        // Order fields
         if (allowedOrderFields.includes(key)) {
           query.andWhere(`order.${key} ILIKE :${paramKey}`, {
             [paramKey]: `%${value}%`,
           });
         }
-
-        // Profile fields
-        // if (allowedProfileFields.includes(key)) {
-        //   if (allowedProfileFields.includes(key)) {
-        //     query.andWhere(`profile.${key} ILIKE :${paramKey}`, {
-        //       [paramKey]: `%${value}%`,
-        //     });
-        //   }
-        // }
       }
     }
 

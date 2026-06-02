@@ -72,10 +72,27 @@ export class UsersService {
     return createdUser;
   }
 
-  async getUsers({ limit = 30, page = 1, search }: GetUsersDto) {
+  async getUsers({
+    limit = 30,
+    page = 1,
+    search,
+    orderBy,
+    sortedBy,
+  }: GetUsersDto) {
     const skip = (page - 1) * limit;
 
     const query = this.userRepository.createQueryBuilder('user');
+
+    // SAFE SORTING
+    const allowedOrderByFields = ['created_at', 'name', 'is_active'];
+
+    const safeOrderBy = allowedOrderByFields.includes(orderBy)
+      ? orderBy
+      : 'created_at';
+
+    const safeSortedBy = sortedBy?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+    query.orderBy(`user.${safeOrderBy}`, safeSortedBy);
 
     if (search) {
       const parseSearchParams = search.split(';');

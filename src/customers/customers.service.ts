@@ -94,7 +94,13 @@ export class CustomersService {
     });
   }
 
-  async getCustomers({ limit = 5, page = 1, search }: GetUsersDto) {
+  async getCustomers({
+    limit = 5,
+    page = 1,
+    search,
+    orderBy,
+    sortedBy,
+  }: GetUsersDto) {
     const skip = (page - 1) * limit;
 
     const query = this.userRepository
@@ -103,6 +109,17 @@ export class CustomersService {
       .where('user.role = :role', {
         role: RoleType.CUSTOMER,
       });
+
+    // SAFE SORTING
+    const allowedOrderByFields = ['created_at', 'name', 'is_active'];
+
+    const safeOrderBy = allowedOrderByFields.includes(orderBy)
+      ? orderBy
+      : 'created_at';
+
+    const safeSortedBy = sortedBy?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+    query.orderBy(`user.${safeOrderBy}`, safeSortedBy);
 
     if (search) {
       const parseSearchParams = search.split(';');

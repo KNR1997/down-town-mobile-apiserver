@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { GetCategoriesDto } from './dto/get-categories.dto';
 import { Category } from './entities/category.entity';
@@ -14,7 +18,7 @@ export class CategoriesService {
     @InjectRepository(Category)
     private readonly categoriesRepository: Repository<Category>,
     private readonly entityManager: EntityManager,
-  ) { }
+  ) {}
 
   async create(createDto: CreateCategoryDto): Promise<Category> {
     // Use provided slug or generate one from name
@@ -45,7 +49,7 @@ export class CategoriesService {
     category.details = createDto.details;
     category.language = createDto.language;
     category.type = { id: createDto.type_id } as any;
-    category.parent = { id: createDto.parent} as any;
+    category.parent = { id: createDto.parent } as any;
 
     return await this.entityManager.save(category);
   }
@@ -54,13 +58,25 @@ export class CategoriesService {
     limit = 30,
     page = 1,
     search,
-    parent,
+    orderBy,
+    sortedBy,
   }: GetCategoriesDto) {
     const skip = (page - 1) * limit;
 
     const query = this.categoriesRepository
       .createQueryBuilder('category')
       .leftJoinAndSelect('category.type', 'type');
+
+    // SAFE SORTING
+    const allowedOrderByFields = ['created_at', 'name', 'slug'];
+
+    const safeOrderBy = allowedOrderByFields.includes(orderBy)
+      ? orderBy
+      : 'created_at';
+
+    const safeSortedBy = sortedBy?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+    query.orderBy(`category.${safeOrderBy}`, safeSortedBy);
 
     // Optional search
     if (search) {
@@ -138,7 +154,9 @@ export class CategoriesService {
       });
 
       if (exists) {
-        throw new ConflictException(`Category with slug "${slug}" already exists`);
+        throw new ConflictException(
+          `Category with slug "${slug}" already exists`,
+        );
       }
     }
 
@@ -147,7 +165,7 @@ export class CategoriesService {
     category.icon = updateDto.icon;
     category.details = updateDto.details;
     category.type = { id: updateDto.type_id } as any;
-    category.parent = { id: updateDto.parent} as any;
+    category.parent = { id: updateDto.parent } as any;
 
     return await this.entityManager.save(category);
   }

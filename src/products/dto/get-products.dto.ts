@@ -5,6 +5,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { TypeResponseDto } from 'src/types/dto/get-types.dto';
 import { CategoryResponseDto } from 'src/categories/dto/get-categories.dto';
+import { SortOrder } from 'src/common/dto/generic-conditions.dto';
 
 export class ProductResponseDto {
   @ApiProperty({
@@ -126,10 +127,16 @@ export class UpdateProductResponseDto {
 export class ProductPaginator extends Paginator<ProductResponseDto> {}
 
 export class GetProductsDto extends PaginationArgs {
-  orderBy?: string;
-  sortedBy?: string;
+  orderBy: QueryProductsOrderByColumn = QueryProductsOrderByColumn.NAME;
+  sortedBy?: SortOrder;
   searchJoin?: string;
   search?: string;
   date_range?: string;
   language?: string;
+}
+
+export enum QueryProductsOrderByColumn {
+  CREATED_AT = 'CREATED_AT',
+  NAME = 'NAME',
+  UPDATED_AT = 'UPDATED_AT',
 }

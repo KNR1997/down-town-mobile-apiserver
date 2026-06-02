@@ -61,7 +61,7 @@ export class UserResponseDto {
 }
 
 export class GetUsersDto extends PaginationArgs {
-  orderBy?: QueryUsersOrderByColumn;
+  orderBy: QueryUsersOrderByColumn = QueryUsersOrderByColumn.NAME;
   sortedBy?: SortOrder;
   text?: string;
   search?: string;

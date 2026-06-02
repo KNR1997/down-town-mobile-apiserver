@@ -9,7 +9,7 @@ import { UserResponseDto } from 'src/users/dto/get-users.dto';
 export class OrderPaginator extends Paginator<OrderResponseDto> {}
 
 export class GetOrdersDto extends PaginationArgs {
-  orderBy?: QueryOrdersOrderByColumn;
+  orderBy: QueryOrdersOrderByColumn = QueryOrdersOrderByColumn.NAME;
   sortedBy?: SortOrder;
   search?: string;
   parent?: number | string = 'null';

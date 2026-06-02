@@ -8,7 +8,7 @@ import { TypeResponseDto } from 'src/types/dto/get-types.dto';
 export class CategoryPaginator extends Paginator<CategoryResponseDto> {}
 
 export class GetCategoriesDto extends PaginationArgs {
-  orderBy?: QueryCategoriesOrderByColumn;
+  orderBy: QueryCategoriesOrderByColumn = QueryCategoriesOrderByColumn.NAME;
   sortedBy?: SortOrder;
   search?: string;
   parent?: number | string = 'null';
