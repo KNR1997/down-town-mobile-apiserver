@@ -284,4 +284,15 @@ export class UsersService {
     }
     await this.userRepository.delete(id);
   }
+
+  async block(id: number) {
+    const user = await this.userRepository.findOneBy({ id });
+    if (!user) {
+      this.logger.warn({ userId: id }, 'User block failed: not found');
+      throw new NotFoundException(`User with id "${id}" not found`);
+    }
+    user.is_active = false;
+    await this.userRepository.save(user);
+    this.logger.info({ userId: id }, 'User blocked');
+  }
 }

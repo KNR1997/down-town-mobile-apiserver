@@ -15,10 +15,17 @@ import { GetUsersDto, UserResponseDto } from './dto/get-users.dto';
 import { plainToInstance } from 'class-transformer';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 import { PermissionType, RoleType } from './entities/user.entity';
+import { PinoLogger } from 'nestjs-pino';
+import { BlockUserDto } from './dto/block-user.dto';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(UsersController.name);
+  }
 
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
@@ -82,5 +89,22 @@ export class UsersController {
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return await this.usersService.remove(+id);
+  }
+
+  @Post('block-user')
+  async block(@Body() blockUserDto: BlockUserDto) {
+    this.logger.debug(
+      {
+        userId: blockUserDto.id,
+      },
+      'Block user request received',
+    );
+    await this.usersService.block(blockUserDto.id);
+
+    return new SuccessResponseDto({
+      message: 'User blocked successfully',
+      statusCode: 200,
+      data: null,
+    });
   }
 }
