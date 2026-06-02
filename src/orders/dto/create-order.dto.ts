@@ -9,12 +9,12 @@ export class OrderProductDto {
 }
 
 export class CreateOrderDto {
-  // @ApiProperty({
-  //   description: 'The customer_id of the order',
-  //   example: '1',
-  // })
-  // @IsNumber()
-  // customer_id: number;
+  @ApiProperty({
+    description: 'The customer_id of the order',
+    example: '1',
+  })
+  @IsNumber()
+  customer_id: number;
 
   @ApiProperty({
     description: 'The amount of the order',
