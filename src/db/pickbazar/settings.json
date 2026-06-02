@@ -57,7 +57,7 @@
       "file_name": "Pickbazar.png"
     },
     "useOtp": false,
-    "currency": "USD",
+    "currency": "LKR",
     "taxClass": "1",
     "siteTitle": "Pickbazar",
     "freeShipping": false,
@@ -99,7 +99,7 @@
       }
     ],
     "currencyOptions": {
-      "formation": "en-US",
+      "formation": "en-LK",
       "fractions": 2
     },
     "useEnableGateway": false,
