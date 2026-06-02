@@ -6,6 +6,7 @@ import { PermissionType, User } from '../entities/user.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { AddressDto, AddressResponseDto } from './address.dto';
+import { ProfileResponseDto } from './get-profile.dto';
 
 export class UserPaginator extends Paginator<UserResponseDto> {}
 
@@ -53,6 +54,10 @@ export class UserResponseDto {
   })
   @Expose()
   permissions: PermissionType[];
+
+  @Expose()
+  @Type(() => ProfileResponseDto)
+  profile?: ProfileResponseDto;
 }
 
 export class GetUsersDto extends PaginationArgs {

@@ -9,6 +9,8 @@ import { paginate } from 'src/common/pagination/paginate';
 import { Address } from './entities/address.entity';
 import { Profile } from './entities/profile.entity';
 import * as bcrypt from 'bcrypt';
+import { Transactional } from '@nestjs-cls/transactional';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class UsersService {
@@ -21,6 +23,8 @@ export class UsersService {
 
     @InjectRepository(Profile)
     private profileRepository: Repository<Profile>,
+
+    private readonly logger: PinoLogger,
   ) {}
 
   async findUserByEmail(email: string): Promise<User | null> {
@@ -29,6 +33,7 @@ export class UsersService {
     });
   }
 
+  @Transactional()
   async create({
     name,
     email,
@@ -53,11 +58,16 @@ export class UsersService {
     user.permissions = permissions;
 
     const createdUser = await this.userRepository.save(user);
+    this.logger.info(
+      { customerId: createdUser.id, email: createdUser.email },
+      'User created',
+    );
 
     const profile = new Profile();
 
     profile.user = { id: createdUser.id } as any;
-    this.profileRepository.save(profile);
+    const createdProfile = await this.profileRepository.save(profile);
+    this.logger.info({ profileId: createdProfile.id }, 'Profile created');
 
     return createdUser;
   }

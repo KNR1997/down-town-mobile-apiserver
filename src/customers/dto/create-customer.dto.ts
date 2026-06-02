@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { CreateProfileDto } from 'src/users/dto/create-profile.dto';
 
 export class CreateCustomerDto {
   @ApiProperty({
@@ -14,4 +15,5 @@ export class CreateCustomerDto {
   email: string;
   password: string;
   is_active?: boolean;
+  profile?: CreateProfileDto;
 }

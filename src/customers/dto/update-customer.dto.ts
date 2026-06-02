@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { AddressDto } from 'src/users/dto/address.dto';
+import { UpdateProfileDto } from 'src/users/dto/update-profile.dto';
 
 export class UpdateCustomerDto {
   @ApiProperty({
@@ -16,5 +17,5 @@ export class UpdateCustomerDto {
 
   address?: AddressDto[];
 
-  // profile?: UpdateProfileDto;
+  profile: UpdateProfileDto;
 }
