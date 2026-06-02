@@ -1,6 +1,7 @@
 import { CoreEntity } from 'src/common/entities/core.entity';
+import { Product } from 'src/products/entities/product.entity';
 import { Type } from 'src/types/entities/type.entity';
-import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
+import { Column, Entity, ManyToMany, ManyToOne, OneToMany } from 'typeorm';
 
 @Entity()
 export class Category extends CoreEntity {
@@ -15,6 +16,9 @@ export class Category extends CoreEntity {
     onDelete: 'CASCADE',
   })
   parent?: Category;
+
+  @ManyToMany(() => Product, (product) => product.categories)
+  products?: Product[];
 
   @OneToMany(() => Category, (category) => category.parent)
   children?: Category[];

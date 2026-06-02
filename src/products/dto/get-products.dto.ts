@@ -4,6 +4,7 @@ import { Paginator } from 'src/common/dto/paginator.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { TypeResponseDto } from 'src/types/dto/get-types.dto';
+import { CategoryResponseDto } from 'src/categories/dto/get-categories.dto';
 
 export class ProductResponseDto {
   @ApiProperty({
@@ -69,6 +70,14 @@ export class ProductResponseDto {
   })
   @Expose()
   product_type: ProductType;
+
+  @ApiProperty({
+    description: 'Product categories',
+    type: [CategoryResponseDto],
+  })
+  @Expose()
+  @Type(() => CategoryResponseDto)
+  categories: CategoryResponseDto[];
 
   @ApiProperty({
     description: 'The status of the product',

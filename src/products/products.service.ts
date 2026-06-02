@@ -60,6 +60,10 @@ export class ProductsService {
     product.shop = { id: createDto.shop_id } as any;
     product.language = createDto.language;
 
+    // Many-to-many categories
+    product.categories =
+      createDto.categories?.map((id) => ({ id }) as any) ?? [];
+
     const saved = await this.productsRepository.save(product);
     this.logger.info(
       { productId: saved.id, slug: saved.slug },
@@ -85,9 +89,28 @@ export class ProductsService {
 
         const paramKey = key.replace('.', '_');
 
+        // RELATION FILTER (categories.slug)
+        if (key.includes('.')) {
+          const [relation, field] = key.split('.');
+
+          if (relation === 'categories') {
+            query.leftJoin('product.categories', 'categories');
+
+            query.andWhere(`categories.${field} = :${paramKey}`, {
+              [paramKey]: value,
+            });
+          }
+
+          continue;
+        }
+
         // Product fields
         if (key === 'status') {
           query.andWhere(`product.status = :${paramKey}`, {
+            [paramKey]: value,
+          });
+        } else if (key === 'product_type') {
+          query.andWhere(`product.product_type = :${paramKey}`, {
             [paramKey]: value,
           });
         } else if (allowedProductFields.includes(key)) {
@@ -114,7 +137,7 @@ export class ProductsService {
   async getProductBySlug(slug: string): Promise<Product> {
     const product = await this.productsRepository.findOne({
       where: { slug },
-      relations: ['type'],
+      relations: ['type', 'categories'],
     });
 
     if (!product) {
@@ -150,6 +173,10 @@ export class ProductsService {
     product.type = { id: updateDto.type_id } as any;
     product.shop = { id: updateDto.shop_id } as any;
     product.language = updateDto.language;
+
+    // Replace existing category relations
+    product.categories =
+      updateDto.categories?.map((id) => ({ id }) as any) ?? [];
 
     const updated = await this.productsRepository.save(product);
     this.logger.info({ productId: id }, 'Product updated');

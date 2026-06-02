@@ -1,7 +1,8 @@
+import { Category } from 'src/categories/entities/category.entity';
 import { CoreEntity } from 'src/common/entities/core.entity';
 import { Shop } from 'src/shops/entities/shop.entity';
 import { Type } from 'src/types/entities/type.entity';
-import { Column, Entity, Index, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
 
 export enum ProductStatus {
   PUBLISH = 'publish',
@@ -26,6 +27,14 @@ export class Product extends CoreEntity {
     onDelete: 'CASCADE',
   })
   type?: Type;
+
+  @ManyToMany(() => Category, {
+    cascade: false,
+  })
+  @JoinTable({
+    name: 'product_categories',
+  })
+  categories?: Category[];
 
   @ManyToOne(() => Shop, (shop) => shop.products, {
     onDelete: 'CASCADE',

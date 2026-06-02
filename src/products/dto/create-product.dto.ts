@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsString } from 'class-validator';
+import { IsArray, IsEnum, IsInt, IsString } from 'class-validator';
 import { ProductStatus } from '../entities/product.entity';
+import { Type } from 'class-transformer';
 
 export class CreateProductDto {
   @ApiProperty({
@@ -77,4 +78,14 @@ export class CreateProductDto {
   })
   @IsString()
   language: string;
+
+  @ApiProperty({
+    description: 'Category IDs',
+    example: [1, 2, 3],
+    type: [Number],
+  })
+  @IsArray()
+  @IsInt({ each: true })
+  @Type(() => Number)
+  categories: number[];
 }
