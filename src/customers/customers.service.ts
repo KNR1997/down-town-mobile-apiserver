@@ -65,6 +65,7 @@ export class CustomersService {
         email: createDto.email,
         password: hashedPassword,
         role: RoleType.CUSTOMER,
+        permissions: [PermissionType.CUSTOMER],
       });
 
       const createdCustomer = await manager.save(user);
