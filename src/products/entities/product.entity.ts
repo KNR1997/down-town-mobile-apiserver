@@ -38,7 +38,11 @@ export class Product extends CoreEntity {
   @Column()
   unit: string;
 
-  @Column()
+  @Column({
+    type: 'numeric',
+    precision: 10,
+    scale: 2,
+  })
   price: number;
 
   @Column()
