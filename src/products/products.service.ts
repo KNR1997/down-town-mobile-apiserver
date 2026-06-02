@@ -130,6 +130,66 @@ export class ProductsService {
     };
   }
 
+  async getLowStockProducts({ limit = 30, page = 1, search }: GetProductsDto) {
+    const skip = (page - 1) * limit;
+
+    const query = this.productsRepository
+      .createQueryBuilder('product')
+      .where('product.quantity < :qty', { qty: 10 });
+
+    if (search) {
+      const parseSearchParams = search.split(';');
+
+      const allowedProductFields = ['name', 'status'];
+
+      for (const param of parseSearchParams) {
+        const [key, value] = param.split(':');
+
+        if (!key || !value) continue;
+
+        const paramKey = key.replace('.', '_');
+
+        // RELATION FILTER (categories.slug)
+        if (key.includes('.')) {
+          const [relation, field] = key.split('.');
+
+          if (relation === 'categories') {
+            query.leftJoin('product.categories', 'categories');
+
+            query.andWhere(`categories.${field} = :${paramKey}`, {
+              [paramKey]: value,
+            });
+          }
+
+          continue;
+        }
+
+        // Product fields
+        if (key === 'status') {
+          query.andWhere(`product.status = :${paramKey}`, {
+            [paramKey]: value,
+          });
+        } else if (key === 'product_type') {
+          query.andWhere(`product.product_type = :${paramKey}`, {
+            [paramKey]: value,
+          });
+        } else if (allowedProductFields.includes(key)) {
+          query.andWhere(`product.${key} ILIKE :${paramKey}`, {
+            [paramKey]: `%${value}%`,
+          });
+        }
+      }
+    }
+    const [data, total] = await query.skip(skip).take(limit).getManyAndCount();
+
+    const url = `/products?search=${search ?? ''}&limit=${limit}`;
+
+    return {
+      data,
+      ...paginate(total, page, limit, data.length, url),
+    };
+  }
+
   async findOne(id: number) {
     return this.productsRepository.findOneBy({ id });
   }
