@@ -295,4 +295,15 @@ export class UsersService {
     await this.userRepository.save(user);
     this.logger.info({ userId: id }, 'User blocked');
   }
+
+  async unblock(id: number) {
+    const user = await this.userRepository.findOneBy({ id });
+    if (!user) {
+      this.logger.warn({ userId: id }, 'User unblock failed: not found');
+      throw new NotFoundException(`User with id "${id}" not found`);
+    }
+    user.is_active = true;
+    await this.userRepository.save(user);
+    this.logger.info({ userId: id }, 'User unblocked');
+  }
 }

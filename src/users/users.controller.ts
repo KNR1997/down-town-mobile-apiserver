@@ -17,6 +17,7 @@ import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 import { PermissionType, RoleType } from './entities/user.entity';
 import { PinoLogger } from 'nestjs-pino';
 import { BlockUserDto } from './dto/block-user.dto';
+import { UnBlockUserDto } from './dto/unblock-user.dto';
 
 @Controller('users')
 export class UsersController {
@@ -103,6 +104,23 @@ export class UsersController {
 
     return new SuccessResponseDto({
       message: 'User blocked successfully',
+      statusCode: 200,
+      data: null,
+    });
+  }
+
+  @Post('unblock-user')
+  async unblock(@Body() unblockUserDto: UnBlockUserDto) {
+    this.logger.debug(
+      {
+        userId: unblockUserDto.id,
+      },
+      'UnBlock user request received',
+    );
+    await this.usersService.unblock(unblockUserDto.id);
+
+    return new SuccessResponseDto({
+      message: 'User unblocked successfully',
       statusCode: 200,
       data: null,
     });
