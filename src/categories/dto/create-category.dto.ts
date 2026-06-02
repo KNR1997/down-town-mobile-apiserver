@@ -44,4 +44,10 @@ export class CreateCategoryDto {
     example: 1,
   })
   type_id: number;
+
+  @ApiProperty({
+    description: 'The parent id of the Category',
+    example: 1,
+  })
+  parent: number;
 }

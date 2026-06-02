@@ -45,6 +45,7 @@ export class CategoriesService {
     category.details = createDto.details;
     category.language = createDto.language;
     category.type = { id: createDto.type_id } as any;
+    category.parent = { id: createDto.parent} as any;
 
     return await this.entityManager.save(category);
   }
@@ -108,7 +109,7 @@ export class CategoriesService {
   async getCategoryBySlug(slug: string): Promise<Category> {
     const category = await this.categoriesRepository.findOne({
       where: { slug },
-      relations: ['type'],
+      relations: ['type', 'parent'],
     });
 
     if (!category) {
@@ -146,6 +147,7 @@ export class CategoriesService {
     category.icon = updateDto.icon;
     category.details = updateDto.details;
     category.type = { id: updateDto.type_id } as any;
+    category.parent = { id: updateDto.parent} as any;
 
     return await this.entityManager.save(category);
   }

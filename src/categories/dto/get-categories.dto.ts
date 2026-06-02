@@ -69,4 +69,9 @@ export class CategoryResponseDto {
   @Expose()
   @Type(() => TypeResponseDto)
   type: TypeResponseDto;
+
+  @ApiProperty({ type: CategoryResponseDto })
+  @Expose()
+  @Type(() => CategoryResponseDto)
+  parent: CategoryResponseDto;
 }
