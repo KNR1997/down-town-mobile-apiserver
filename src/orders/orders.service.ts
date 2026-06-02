@@ -38,7 +38,7 @@ export class OrdersService {
     // }
 
     order.tracking_number = uuidv4();
-    // order.customer = { id: createOrderDto.customer_id } as any;
+    order.customer = { id: createOrderDto.customer_id } as any;
     order.customer_contact = createOrderDto.customer_contact;
     order.customer_name = createOrderDto.customer_name;
     order.amount = createOrderDto.amount;
@@ -83,6 +83,34 @@ export class OrdersService {
 
     // Optional search
     if (search) {
+      const parseSearchParams = search.split(';');
+
+      const allowedOrderFields = ['tracking_number'];
+      // const allowedProfileFields = ['contact'];
+
+      for (const param of parseSearchParams) {
+        const [key, value] = param.split(':');
+
+        if (!key || !value) continue;
+
+        const paramKey = key.replace('.', '_');
+
+        // Order fields
+        if (allowedOrderFields.includes(key)) {
+          query.andWhere(`order.${key} ILIKE :${paramKey}`, {
+            [paramKey]: `%${value}%`,
+          });
+        }
+
+        // Profile fields
+        // if (allowedProfileFields.includes(key)) {
+        //   if (allowedProfileFields.includes(key)) {
+        //     query.andWhere(`profile.${key} ILIKE :${paramKey}`, {
+        //       [paramKey]: `%${value}%`,
+        //     });
+        //   }
+        // }
+      }
     }
 
     const [data, total] = await query.skip(skip).take(limit).getManyAndCount();
