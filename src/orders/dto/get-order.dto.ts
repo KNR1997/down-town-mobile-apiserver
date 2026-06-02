@@ -112,4 +112,11 @@ export class OrderResponseDto {
   @Expose()
   @Type(() => OrderItemResponseDto)
   items: OrderItemResponseDto[];
+
+  @ApiProperty({
+    description: 'The created date of the order',
+    example: '2026-05-11',
+  })
+  @Expose()
+  created_at: string;
 }
