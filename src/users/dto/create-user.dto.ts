@@ -1,4 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { CustomerResponseDto } from 'src/customers/dto/get-customer.dto';
+import { UserResponseDto } from './get-users.dto';
 
 export class CreateUserDto {
   @ApiProperty({
@@ -12,6 +14,21 @@ export class CreateUserDto {
     example: 'john@gmail.com',
   })
   email: string;
+
+  @ApiProperty({
+    description: 'The password of the user',
+    example: 'Xsdwwe=-21313',
+  })
   password: string;
-  is_active?: boolean;
+}
+
+export class CreateUserResponseDto {
+  @ApiProperty({ example: 'User created successfully' })
+  message: string;
+
+  @ApiProperty({ example: 201 })
+  statusCode: number;
+
+  @ApiProperty({ type: UserResponseDto })
+  data: UserResponseDto;
 }

@@ -7,12 +7,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { PermissionType, RoleType, User } from 'src/users/entities/user.entity';
 import { DataSource, Repository } from 'typeorm';
 import { CreateCustomerDto } from './dto/create-customer.dto';
-import { GetUsersDto } from 'src/users/dto/get-users.dto';
 import { paginate } from 'src/common/pagination/paginate';
 import { Profile } from 'src/users/entities/profile.entity';
 import { PinoLogger } from 'nestjs-pino';
 import * as bcrypt from 'bcrypt';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
+import { GetCustomersDto } from './dto/get-customer.dto';
 
 @Injectable()
 export class CustomersService {
@@ -100,7 +100,7 @@ export class CustomersService {
     search,
     orderBy,
     sortedBy,
-  }: GetUsersDto) {
+  }: GetCustomersDto) {
     const skip = (page - 1) * limit;
 
     const query = this.userRepository

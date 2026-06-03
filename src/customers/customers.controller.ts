@@ -4,9 +4,24 @@ import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
-import { GetUsersDto, UserResponseDto } from 'src/users/dto/get-users.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
+import {
+  ApiBadRequestResponse,
+  ApiConflictResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import {
+  CreateCustomerResponseDto,
+  CustomerPaginator,
+  CustomerResponseDto,
+  GetCustomersDto,
+  UpdateCustomerResponseDto,
+} from './dto/get-customer.dto';
 
+@ApiTags('customers')
 @Controller('customers')
 export class CustomersController {
   constructor(
@@ -15,6 +30,15 @@ export class CustomersController {
   ) {}
 
   @Post()
+  @ApiOperation({ summary: 'Create a new customer' })
+  @ApiOkResponse({ type: CreateCustomerResponseDto })
+  @ApiConflictResponse({
+    description: 'Customer with this email already exists.',
+  })
+  @ApiConflictResponse({
+    description: 'Customer with this contact number already exists.',
+  })
+  @ApiBadRequestResponse({ description: 'Invalid data provided.' })
   async create(@Body() createDto: CreateCustomerDto) {
     this.logger.debug(
       {
@@ -22,13 +46,14 @@ export class CustomersController {
       },
       'Create customer request received',
     );
+
     const customer = await this.customersService.create(createDto);
 
-    const data = plainToInstance(UserResponseDto, customer, {
+    const data = plainToInstance(CustomerResponseDto, customer, {
       excludeExtraneousValues: true,
     });
 
-    return new SuccessResponseDto<UserResponseDto>({
+    return new SuccessResponseDto<CustomerResponseDto>({
       message: 'Customer created successfully',
       statusCode: 201,
       data,
@@ -36,10 +61,24 @@ export class CustomersController {
   }
 
   @Get()
-  async findAll(@Query() query: GetUsersDto) {
+  @ApiOperation({ summary: 'Get paginated customers' })
+  @ApiOkResponse({
+    description: 'List of customers retrieved successfully.',
+    type: CustomerPaginator,
+  })
+  async findAll(@Query() query: GetCustomersDto) {
+    this.logger.debug(
+      {
+        page: query.page,
+        limit: query.limit,
+        search: query.search,
+      },
+      'Get customers request received',
+    );
+
     const result = await this.customersService.getCustomers(query);
 
-    const data = plainToInstance(UserResponseDto, result.data, {
+    const data = plainToInstance(CustomerResponseDto, result.data, {
       excludeExtraneousValues: true,
     });
 
@@ -54,6 +93,14 @@ export class CustomersController {
   }
 
   @Put(':id')
+  @ApiOperation({ summary: 'Update a customer' })
+  @ApiOkResponse({
+    description: 'Customer updated successfully.',
+    type: UpdateCustomerResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Customer with id not found.',
+  })
   async update(
     @Param('id') id: string,
     @Body() updateCustomerDto: UpdateCustomerDto,
@@ -68,11 +115,11 @@ export class CustomersController {
 
     const customer = await this.customersService.update(+id, updateCustomerDto);
 
-    const data = plainToInstance(UserResponseDto, customer, {
+    const data = plainToInstance(CustomerResponseDto, customer, {
       excludeExtraneousValues: true,
     });
 
-    return new SuccessResponseDto<UserResponseDto>({
+    return new SuccessResponseDto<CustomerResponseDto>({
       message: 'Customer updated successfully',
       statusCode: 200,
       data,

@@ -30,15 +30,31 @@ export class OrderItemResponseDto {
   @Expose()
   product_id: number;
 
+  @ApiProperty({
+    description: 'The order item name',
+    example: "Apple",
+  })
   @Expose()
   product_name: string;
 
+  @ApiProperty({
+    description: 'The order item quantity',
+    example: 1,
+  })
   @Expose()
   order_quantity: string;
 
+  @ApiProperty({
+    description: 'The order item unit price',
+    example: 120,
+  })
   @Expose()
   unit_price: string;
 
+  @ApiProperty({
+    description: 'The order item subtotal',
+    example: 120,
+  })
   @Expose()
   subtotal: string;
 }
@@ -105,10 +121,7 @@ export class OrderResponseDto {
   @Type(() => UserResponseDto)
   customer: UserResponseDto;
 
-  @ApiProperty({
-    description: 'The items of the order',
-    isArray: true,
-  })
+  @ApiProperty({ type: OrderItemResponseDto, isArray: true })
   @Expose()
   @Type(() => OrderItemResponseDto)
   items: OrderItemResponseDto[];

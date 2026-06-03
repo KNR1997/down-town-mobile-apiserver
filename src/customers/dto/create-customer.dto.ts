@@ -13,7 +13,13 @@ export class CreateCustomerDto {
     example: 'john@gmail.com',
   })
   email: string;
+
+  @ApiProperty({
+    description: 'The password of the user',
+    example: 'Xsdwwe=-21313',
+  })
   password: string;
-  is_active?: boolean;
+
+  @ApiProperty({ type: CreateProfileDto })
   profile?: CreateProfileDto;
 }
