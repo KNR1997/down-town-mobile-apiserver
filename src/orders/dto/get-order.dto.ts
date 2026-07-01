@@ -32,7 +32,7 @@ export class OrderItemResponseDto {
 
   @ApiProperty({
     description: 'The order item name',
-    example: "Apple",
+    example: 'Apple',
   })
   @Expose()
   product_name: string;
@@ -100,7 +100,21 @@ export class OrderResponseDto {
     example: '120',
   })
   @Expose()
-  total: string;
+  total: number;
+
+  @ApiProperty({
+    description: 'The paid total of the order',
+    example: '120',
+  })
+  @Expose()
+  paid_total: number;
+
+  @ApiProperty({
+    description: 'The sales tax of the order',
+    example: '120',
+  })
+  @Expose()
+  sales_tax: number;
 
   @ApiProperty({
     description: 'The order_status of the order',

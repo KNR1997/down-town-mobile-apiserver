@@ -209,13 +209,23 @@ export class ProductsService {
   }
 
   async findOne(id: number) {
-    return this.productsRepository.findOneBy({ id });
+    const product = await this.productsRepository.findOneBy({ id });
+
+    if (!product) {
+      this.logger.warn({ id }, 'Product not found');
+      throw new NotFoundException(`Product with id "${id}" not found`);
+    }
+
+    return product;
   }
 
   async getProductBySlug(slug: string): Promise<Product> {
     const product = await this.productsRepository.findOne({
       where: { slug },
-      relations: ['type', 'categories'],
+      relations: {
+        type: true,
+        categories: true,
+      },
     });
 
     if (!product) {
@@ -258,6 +268,19 @@ export class ProductsService {
 
     const updated = await this.productsRepository.save(product);
     this.logger.info({ productId: id }, 'Product updated');
+    return updated;
+  }
+
+  async decreaseQuantity(id: number, quantity: number): Promise<Product> {
+    const product = await this.productsRepository.findOneBy({ id });
+
+    if (!product) {
+      this.logger.warn({ productId: id }, 'Product update failed: not found');
+      throw new NotFoundException(`Product with id "${id}" not found`);
+    }
+
+    product.quantity -= quantity;
+    const updated = await this.productsRepository.save(product);
     return updated;
   }
 

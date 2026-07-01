@@ -7,6 +7,7 @@ import {
   Post,
   Put,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -26,6 +27,7 @@ import {
   GetCategoriesDto,
 } from './dto/get-categories.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { RoleGuard } from 'src/guards/role.guard';
 
 @ApiTags('categories')
 @Controller('categories')
@@ -123,6 +125,7 @@ export class CategoriesController {
   }
 
   @Delete(':id')
+  @UseGuards(RoleGuard)
   @ApiOperation({ summary: 'Delete a Category by id' })
   @ApiOkResponse({
     description: 'Category deleted successfully.',

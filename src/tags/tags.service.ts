@@ -88,7 +88,9 @@ export class TagsService {
   async getTagBySlug(slug: string): Promise<Tag> {
     const tag = await this.tagsRepository.findOne({
       where: { slug },
-      relations: ['type'],
+      relations: {
+        type: true
+      },
     });
 
     if (!tag) {

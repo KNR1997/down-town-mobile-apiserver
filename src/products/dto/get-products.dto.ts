@@ -95,7 +95,7 @@ export class ProductResponseDto {
 
   @ApiProperty({
     description: 'The translated languages of the product',
-    example: 'apple',
+    example: ['en'],
     isArray: true,
   })
   @Expose()

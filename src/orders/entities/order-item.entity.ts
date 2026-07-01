@@ -13,10 +13,18 @@ export class OrderItem extends CoreEntity {
   @Column()
   order_quantity: number;
 
-  @Column()
+  @Column({
+    type: 'numeric',
+    precision: 10,
+    scale: 2,
+  })
   unit_price: number;
 
-  @Column()
+  @Column({
+    type: 'numeric',
+    precision: 10,
+    scale: 2,
+  })
   subtotal: number;
 
   @ManyToOne(() => Order, (order) => order.items, {

@@ -64,7 +64,9 @@ export class ManufacturersService {
   async getManufacturerBySlug(slug: string): Promise<Manufacturer> {
     const manufacturer = await this.manufacturersRepository.findOne({
       where: { slug },
-      relations: ['type'],
+      relations: {
+        type: true
+      },
     });
 
     if (!manufacturer) {

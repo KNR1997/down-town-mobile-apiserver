@@ -9,7 +9,6 @@ import { paginate } from 'src/common/pagination/paginate';
 import { Address } from './entities/address.entity';
 import { Profile } from './entities/profile.entity';
 import * as bcrypt from 'bcrypt';
-import { Transactional } from '@nestjs-cls/transactional';
 import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
@@ -33,7 +32,6 @@ export class UsersService {
     });
   }
 
-  @Transactional()
   async create({
     name,
     email,
@@ -243,7 +241,10 @@ export class UsersService {
   async findOne(id: number) {
     const user = await this.userRepository.findOne({
       where: { id },
-      relations: ['addresses', 'profile'],
+      relations: {
+        addresses: true,
+        profile: true,
+      }
     });
 
     if (!user) {
@@ -256,7 +257,9 @@ export class UsersService {
   async update(id: number, updateDto: UpdateUserDto) {
     const user = await this.userRepository.findOne({
       where: { id },
-      relations: ['addresses'], // important
+      relations: {
+        addresses: true,
+      }
     });
 
     if (!user) {

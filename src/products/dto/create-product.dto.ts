@@ -8,7 +8,8 @@ export class CreateProductDto {
     description: 'The name of the product',
     example: 'Apple',
   })
-  name: string;
+  @IsString()
+  name!: string;
 
   @ApiProperty({
     description: 'The slug of the product',
@@ -20,49 +21,49 @@ export class CreateProductDto {
     description: 'The sku of the product',
     example: '1213',
   })
-  sku: string;
+  sku!: string;
 
   @ApiProperty({
     description: 'The unit of the product',
     example: '1 unit',
   })
-  unit: string;
+  unit!: string;
 
   @ApiProperty({
     description: 'The description of the product',
     example: 'some details',
   })
-  description: string;
+  description!: string;
 
   @ApiProperty({
     description: 'The price of the product',
     example: 120,
   })
-  price: number;
+  price!: number;
 
   @ApiProperty({
     description: 'The quantity of the product',
     example: 25,
   })
-  quantity: number;
+  quantity!: number;
 
   @ApiProperty({
     description: 'Is Product public or not',
     example: true,
   })
-  public: boolean;
+  public!: boolean;
 
   @ApiProperty({
     description: 'The Type id of the product',
     example: 1,
   })
-  type_id: number;
+  type_id!: number;
 
   @ApiProperty({
     description: 'The shop id of the product',
     example: 1,
   })
-  shop_id: number;
+  shop_id!: number;
 
   @ApiProperty({
     description: 'The status of the product',
@@ -70,14 +71,14 @@ export class CreateProductDto {
     example: ProductStatus.PUBLISH,
   })
   @IsEnum(ProductStatus)
-  status: ProductStatus;
+  status!: ProductStatus;
 
   @ApiProperty({
     description: 'The language of the product',
     example: 'en',
   })
   @IsString()
-  language: string;
+  language!: string;
 
   @ApiProperty({
     description: 'Category IDs',
@@ -87,5 +88,5 @@ export class CreateProductDto {
   @IsArray()
   @IsInt({ each: true })
   @Type(() => Number)
-  categories: number[];
+  categories!: number[];
 }

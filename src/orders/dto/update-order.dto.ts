@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { OrderStatus } from '../entities/order.entity';
 import { IsEnum } from 'class-validator';
+import { OrderStatus } from 'src/common/enums';
 
 export class UpdateOrderDto {
   @ApiProperty({
@@ -9,16 +9,16 @@ export class UpdateOrderDto {
     example: OrderStatus.PROCESSING,
   })
   @IsEnum(OrderStatus)
-  order_status: string;
+  order_status!: string;
 }
 
 export class UpdateOrderResponseDto {
   @ApiProperty({ example: 'Product updated successfully' })
-  message: string;
+  message!: string;
 
   @ApiProperty({ example: 200 })
-  statusCode: number;
+  statusCode!: number;
 
   @ApiProperty({ type: UpdateOrderDto })
-  data: UpdateOrderDto;
+  data!: UpdateOrderDto;
 }

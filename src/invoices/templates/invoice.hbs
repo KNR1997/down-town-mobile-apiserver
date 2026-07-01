@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Invoice</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 30px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th,
+    td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+
+    th {
+      text-align: left;
+    }
+
+    .total {
+      margin-top: 20px;
+      text-align: right;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Invoice {{invoice.invoice_number}}</h1>
+
+<p>
+  Customer: {{order.customer_name}}
+</p>
+
+<p>
+  Contact: {{order.customer_contact}}
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Product</th>
+      <th>Qty</th>
+      <th>Price</th>
+      <th>Total</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {{#each items}}
+    <tr>
+      <td>{{this.product_name}}</td>
+      <td>{{this.quantity}}</td>
+      <td>{{this.unit_price}}</td>
+      <td>{{this.total}}</td>
+    </tr>
+    {{/each}}
+  </tbody>
+</table>
+
+<div class="total">
+  <p>Subtotal: {{invoice.subtotal}}</p>
+  <p>Tax: {{invoice.tax}}</p>
+  <p>Shipping: {{invoice.shipping_fee}}</p>
+  <p>Discount: {{invoice.discount}}</p>
+
+  <h3>Total: {{invoice.total}}</h3>
+</div>
+
+</body>
+</html>

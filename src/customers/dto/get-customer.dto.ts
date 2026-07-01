@@ -29,6 +29,21 @@ export class CustomerResponseDto {
   @Expose()
   email: string;
 
+  @ApiProperty({
+    description: 'The active status of the user',
+  })
+  @Expose()
+  is_active: boolean;
+
+  @ApiProperty({
+    description: 'Permissions of the user',
+    enum: PermissionType,
+    isArray: true,
+    example: ['store_owner', 'staff'],
+  })
+  @Expose()
+  permissions: PermissionType[];
+
   @ApiProperty({ type: ProfileResponseDto })
   @Expose()
   @Type(() => ProfileResponseDto)

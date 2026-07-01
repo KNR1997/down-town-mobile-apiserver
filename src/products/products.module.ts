@@ -14,5 +14,6 @@ import { ProductsStockController } from './products-stock.controller';
     ProductsStockController,
   ],
   providers: [ProductsService],
+  exports: [ProductsService]
 })
 export class ProductsModule {}

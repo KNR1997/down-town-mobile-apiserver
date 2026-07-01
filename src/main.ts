@@ -3,8 +3,12 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
+import { initializeTransactionalContext } from 'typeorm-transactional';
 
 async function bootstrap() {
+  // Initialize the global transaction context first
+  initializeTransactionalContext();
+
   const app = await NestFactory.create(AppModule, {
     cors: true,
     bufferLogs: true,

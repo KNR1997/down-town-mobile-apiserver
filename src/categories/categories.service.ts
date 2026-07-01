@@ -125,7 +125,10 @@ export class CategoriesService {
   async getCategoryBySlug(slug: string): Promise<Category> {
     const category = await this.categoriesRepository.findOne({
       where: { slug },
-      relations: ['type', 'parent'],
+      relations: {
+        type: true,
+        parent: true,
+      },
     });
 
     if (!category) {
