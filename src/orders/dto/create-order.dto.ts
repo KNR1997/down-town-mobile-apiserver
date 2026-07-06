@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
 import { OrderResponseDto } from './get-order.dto';
 import { PaymentMethod } from 'src/common/enums';
 import { PaymentGateway } from 'src/common/enums/payment-gateway.enum';
@@ -10,6 +10,8 @@ export class OrderProductDto {
     example: '1',
   })
   @IsNumber()
+  @IsNotEmpty({ message: 'product_id is required' })
+  @IsPositive({ message: 'product_id must be a positive number' })
   product_id!: number;
 
   @ApiProperty({
@@ -32,6 +34,37 @@ export class OrderProductDto {
   })
   @IsNumber()
   unit_price!: number;
+
+  @ApiProperty({
+    description: 'The discount for a single product unit',
+    example: 120,
+  })
+  @IsNumber()
+  discount!: number;
+
+  @ApiProperty({
+    description: 'The discount type percentage or fixed',
+    example: 120,
+  })
+  @IsNumber()
+  discount_type!: string;
+
+  @ApiProperty({
+    description: 'The total discount applied (discount * quantuty)',
+    example: 120,
+  })
+  @IsNumber()
+  discount_total!: number;
+}
+
+export class CardDetails {
+  card_type!: string;
+  card_number!: string;
+  last_digits!: string;
+  expiry_month!: string;
+  expiry_year!: string;
+  cvv!: number;
+  card_holder_name!: string;
 }
 
 export class CreateOrderDto {
@@ -71,6 +104,8 @@ export class CreateOrderDto {
   payment_method!: PaymentMethod;
 
   payment_gateway!: PaymentGateway;
+
+  card_details!: CardDetails;
 
   gateway_transaction_id!: string;
 

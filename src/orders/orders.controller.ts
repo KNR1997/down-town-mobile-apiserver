@@ -7,22 +7,21 @@ import {
   Delete,
   Query,
   Put,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
-import { CreateOrderDto, CreateOrderResponseDto } from './dto/create-order.dto';
-import { UpdateOrderDto, UpdateOrderResponseDto } from './dto/update-order.dto';
+import { CreateOrderDto } from './dto/create-order.dto';
+import { UpdateOrderDto } from './dto/update-order.dto';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 import { plainToInstance } from 'class-transformer';
 import {
   GetOrdersDto,
-  OrderPaginator,
   OrderResponseDto,
 } from './dto/get-order.dto';
 import {
-  ApiBadRequestResponse,
-  ApiNotFoundResponse,
-  ApiOkResponse,
   ApiOperation,
+  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { PinoLogger } from 'nestjs-pino';
@@ -35,10 +34,13 @@ export class OrdersController {
     private readonly logger: PinoLogger,
   ) {}
 
+  @ApiOperation({ summary: 'Create order' })
+  @ApiResponse({
+    status: 201,
+    description: 'The order has been successfully created.',
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
   @Post()
-  @ApiOperation({ summary: 'Create a new order' })
-  @ApiOkResponse({ type: CreateOrderResponseDto })
-  @ApiBadRequestResponse({ description: 'Invalid data provided.' })
   async createOrder(@Body() createOrderDto: CreateOrderDto) {
     this.logger.debug('Create order request received');
 
@@ -55,12 +57,9 @@ export class OrdersController {
     });
   }
 
-  @Get()
   @ApiOperation({ summary: 'Get paginated orders' })
-  @ApiOkResponse({
-    description: 'List of orders retrieved successfully.',
-    type: OrderPaginator,
-  })
+  @ApiResponse({ status: 200, description: 'Return all orders.' })
+  @Get()
   async getOrders(@Query() query: GetOrdersDto) {
     this.logger.debug(
       {
@@ -87,15 +86,10 @@ export class OrdersController {
     });
   }
 
-  @Get(':id')
   @ApiOperation({ summary: 'Get order by id' })
-  @ApiOkResponse({
-    description: 'Get order by id successful.',
-    type: OrderResponseDto,
-  })
-  @ApiNotFoundResponse({
-    description: 'Order with id not found.',
-  })
+  @ApiResponse({ status: 200, description: 'Return order.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  @Get(':id')
   async findOne(@Param('id') id: string) {
     this.logger.debug({ id }, 'Get order by id request received');
 
@@ -112,15 +106,13 @@ export class OrdersController {
     });
   }
 
-  @Put(':id')
   @ApiOperation({ summary: 'Update a order' })
-  @ApiOkResponse({
-    description: 'Order updated successfully.',
-    type: UpdateOrderResponseDto,
+  @ApiResponse({
+    status: 201,
+    description: 'The order has been successfully updated.',
   })
-  @ApiNotFoundResponse({
-    description: 'Order with id not found.',
-  })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  @Put(':id')
   async update(
     @Param('id') id: string,
     @Body() updateOrderDto: UpdateOrderDto,
@@ -144,14 +136,13 @@ export class OrdersController {
     });
   }
 
-  @Delete(':id')
   @ApiOperation({ summary: 'Delete a order by id' })
-  @ApiOkResponse({
-    description: 'Order deleted successfully.',
+  @ApiResponse({
+    status: 201,
+    description: 'The order has been successfully deleted.',
   })
-  @ApiNotFoundResponse({
-    description: 'Order with id not found.',
-  })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  @Delete(':id')
   async remove(@Param('id') id: string) {
     this.logger.debug(
       {

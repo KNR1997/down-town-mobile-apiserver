@@ -31,7 +31,7 @@ export class NumberGenerator {
     }
 
     // Increment by 1
-    return latestOrder.tracking_number + 1;
+    return Number(latestOrder.tracking_number) + 1;
   }
 
   /**

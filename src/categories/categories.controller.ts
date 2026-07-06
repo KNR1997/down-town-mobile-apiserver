@@ -9,38 +9,31 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBadRequestResponse,
-  ApiConflictResponse,
-  ApiNotFoundResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { plainToInstance } from 'class-transformer';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 import {
-  CategoryPaginator,
   CategoryResponseDto,
   GetCategoriesDto,
 } from './dto/get-categories.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { RoleGuard } from 'src/guards/role.guard';
 
+// @ApiBearerAuth()
 @ApiTags('categories')
 @Controller('categories')
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
-  @Post()
-  @ApiOperation({ summary: 'Create a new category' })
-  @ApiOkResponse({ type: CreateCategoryDto })
-  @ApiConflictResponse({
-    description: 'Category with this slug already exists.',
+  @ApiOperation({ summary: 'Create category' })
+  @ApiResponse({
+    status: 201,
+    description: 'The category has been successfully created.',
   })
-  @ApiBadRequestResponse({ description: 'Invalid data provided.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  @Post()
   async createProduct(@Body() createProductDto: CreateCategoryDto) {
     const category = await this.categoriesService.create(createProductDto);
 
@@ -55,12 +48,9 @@ export class CategoriesController {
     });
   }
 
-  @Get()
   @ApiOperation({ summary: 'Get paginated categories' })
-  @ApiOkResponse({
-    description: 'List of categories retrieved successfully.',
-    type: CategoryPaginator,
-  })
+  @ApiResponse({ status: 200, description: 'Return all categories.' })
+  @Get()
   async getCategories(@Query() query: GetCategoriesDto) {
     const result = await this.categoriesService.getCategories(query);
 
@@ -78,15 +68,10 @@ export class CategoriesController {
     });
   }
 
+  @ApiOperation({ summary: 'Get category' })
+  @ApiResponse({ status: 200, description: 'Return category.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
   @Get(':slug')
-  @ApiOperation({ summary: 'Get category by slug' })
-  @ApiOkResponse({
-    description: 'Get category by slug successful.',
-    type: CategoryResponseDto,
-  })
-  @ApiNotFoundResponse({
-    description: 'Category with slug not found.',
-  })
   async getProductBySlug(@Param('slug') slug: string) {
     const category = await this.categoriesService.getCategoryBySlug(slug);
 
@@ -101,15 +86,13 @@ export class CategoriesController {
     });
   }
 
+  @ApiOperation({ summary: 'Update category' })
+  @ApiResponse({
+    status: 201,
+    description: 'The category has been successfully updated.',
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
   @Put(':id')
-  @ApiOperation({ summary: 'Update a Category' })
-  @ApiOkResponse({
-    description: 'Category updated successfully.',
-    type: CategoryResponseDto,
-  })
-  @ApiNotFoundResponse({
-    description: 'Category with id not found.',
-  })
   async update(@Param('id') id: string, @Body() updateDto: UpdateCategoryDto) {
     const type = await this.categoriesService.update(+id, updateDto);
 
@@ -124,15 +107,14 @@ export class CategoriesController {
     });
   }
 
-  @Delete(':id')
   @UseGuards(RoleGuard)
-  @ApiOperation({ summary: 'Delete a Category by id' })
-  @ApiOkResponse({
-    description: 'Category deleted successfully.',
+  @ApiOperation({ summary: 'Delete category' })
+  @ApiResponse({
+    status: 201,
+    description: 'The category has been successfully deleted.',
   })
-  @ApiNotFoundResponse({
-    description: 'Category with id not found.',
-  })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  @Delete(':id')
   async remove(@Param('id') id: string) {
     return await this.categoriesService.remove(+id);
   }

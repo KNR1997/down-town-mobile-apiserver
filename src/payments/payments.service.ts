@@ -10,6 +10,7 @@ import { Order } from 'src/orders/entities/order.entity';
 import { Repository } from 'typeorm';
 import { PinoLogger } from 'nestjs-pino';
 import { PaymentMethod, PaymentStatus } from 'src/common/enums';
+import { PaymentGateway } from 'src/common/enums/payment-gateway.enum';
 
 @Injectable()
 export class PaymentsService {
@@ -62,9 +63,22 @@ export class PaymentsService {
       // payment.transaction_id = "TR3242422252";
       payment.amount = createPaymentDto.amount;
       payment.net_amount = createPaymentDto.net_amount;
-      payment.payment_method = PaymentMethod.BANK_TRANSFER;
+      payment.payment_method = createPaymentDto.payment_method;
       payment.status = PaymentStatus.PENDING;
-      payment.currency = "LKR";
+      payment.currency = 'LKR';
+
+      if (
+        createPaymentDto.payment_method == PaymentMethod.CARD &&
+        createPaymentDto.card_details
+      ) {
+        const cardDetails = createPaymentDto.card_details;
+
+        payment.card_brand = cardDetails.card_type;
+        payment.masked_pan = cardDetails.card_number;
+        // payment.card_last_four = cardDetails.last_digits;
+        payment.card_expiry_month = cardDetails.expiry_month;
+        payment.card_expiry_year = cardDetails.expiry_year;
+      }
 
       // const payment = this.paymentRepository.create({
       //   ...createPaymentDto,

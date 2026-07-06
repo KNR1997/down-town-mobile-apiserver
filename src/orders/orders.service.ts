@@ -56,7 +56,7 @@ export class OrdersService {
       const order = new Order();
       // order.tracking_number = uuidv4();
       order.tracking_number =
-        await this.numberGenerator.generateDatedOrderTrackingNumber();
+        await this.numberGenerator.generateOrderTrackingNumber();
       order.customer = { id: createOrderDto.customer_id } as any;
       order.customer_contact = createOrderDto.customer_contact;
       order.customer_name = createOrderDto.customer_name;
@@ -89,6 +89,11 @@ export class OrdersService {
           item.product_name = productData.name;
           item.order_quantity = product.order_quantity;
           item.unit_price = productData.price;
+          if (product.discount_type != null) {
+            item.discount = product.discount;
+            item.discount_type = product.discount_type;
+            item.discount_total = product.discount_total;
+          }
           item.subtotal = productData.price * product.order_quantity;
 
           // Reduce product quantity
@@ -113,9 +118,9 @@ export class OrdersService {
         shipping_cost: order.delivery_fee || 0,
         discount_amount: order.discount || 0,
         net_amount: order.total,
-        payment_method:
-          createOrderDto.payment_method || PaymentMethod.CREDIT_CARD,
+        payment_method: createOrderDto.payment_method,
         payment_gateway: createOrderDto.payment_gateway,
+        card_details: createOrderDto.card_details,
         gateway_transaction_id: createOrderDto.gateway_transaction_id,
         status: PaymentStatus.PENDING,
         status_message: 'Payment initialized',

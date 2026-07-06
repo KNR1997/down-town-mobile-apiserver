@@ -84,7 +84,7 @@ export class InvoicesService {
 
       const invoice = new Invoice();
       invoice.invoice_number =
-        await this.numberGenerator.generateDatedInvoiceNumber();
+        await this.numberGenerator.generateInvoiceNumber();
       invoice.order = order;
       invoice.subtotal = Number(order.amount);
       invoice.tax = Number(order.sales_tax);

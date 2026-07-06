@@ -28,35 +28,56 @@ export class OrderItemResponseDto {
     example: 1,
   })
   @Expose()
-  product_id: number;
+  product_id!: number;
 
   @ApiProperty({
     description: 'The order item name',
     example: 'Apple',
   })
   @Expose()
-  product_name: string;
+  product_name!: string;
 
   @ApiProperty({
     description: 'The order item quantity',
     example: 1,
   })
   @Expose()
-  order_quantity: string;
+  order_quantity!: string;
 
   @ApiProperty({
     description: 'The order item unit price',
     example: 120,
   })
   @Expose()
-  unit_price: string;
+  unit_price!: string;
 
   @ApiProperty({
     description: 'The order item subtotal',
     example: 120,
   })
   @Expose()
-  subtotal: string;
+  subtotal!: string;
+
+  @ApiProperty({
+    description: 'The discount for a single product unit',
+    example: 120,
+  })
+  @Expose()
+  discount!: number;
+
+  @ApiProperty({
+    description: 'The discount type percentage or fixed',
+    example: 120,
+  })
+  @Expose()
+  discount_type!: string;
+
+  @ApiProperty({
+    description: 'The total discount applied (discount * quantuty)',
+    example: 120,
+  })
+  @Expose()
+  discount_total!: number;
 }
 
 export class OrderResponseDto {
@@ -65,85 +86,85 @@ export class OrderResponseDto {
     example: 1,
   })
   @Expose()
-  id: number;
+  id!: number;
 
   @ApiProperty({
     description: 'The tracking_number of the order',
     example: '123232423134',
   })
   @Expose()
-  tracking_number: string;
+  tracking_number!: string;
 
   @ApiProperty({
     description: 'The customer_contact of the order',
     example: '+94113123888',
   })
   @Expose()
-  customer_contact: string;
+  customer_contact!: string;
 
   @ApiProperty({
     description: 'The customer_name of the order',
     example: 'JohnDoe',
   })
   @Expose()
-  customer_name: string;
+  customer_name!: string;
 
   @ApiProperty({
     description: 'The amount of the order',
     example: '120',
   })
   @Expose()
-  amount: string;
+  amount!: string;
 
   @ApiProperty({
     description: 'The total of the order',
     example: '120',
   })
   @Expose()
-  total: number;
+  total!: number;
 
   @ApiProperty({
     description: 'The paid total of the order',
     example: '120',
   })
   @Expose()
-  paid_total: number;
+  paid_total!: number;
 
   @ApiProperty({
     description: 'The sales tax of the order',
     example: '120',
   })
   @Expose()
-  sales_tax: number;
+  sales_tax!: number;
 
   @ApiProperty({
     description: 'The order_status of the order',
     example: '123232423134',
   })
   @Expose()
-  order_status: string;
+  order_status!: string;
 
   @ApiProperty({
     description: 'The payment_status of the order',
     example: '123232423134',
   })
   @Expose()
-  payment_status: string;
+  payment_status!: string;
 
   @ApiProperty({ type: UserResponseDto })
   @Expose()
   @Type(() => UserResponseDto)
-  customer: UserResponseDto;
+  customer!: UserResponseDto;
 
   @ApiProperty({ type: OrderItemResponseDto, isArray: true })
   @Expose()
   @Type(() => OrderItemResponseDto)
-  items: OrderItemResponseDto[];
+  items!: OrderItemResponseDto[];
 
   @ApiProperty({
     description: 'The created date of the order',
     example: '2026-05-11',
   })
   @Expose()
-  created_at: string;
+  created_at!: string;
 }

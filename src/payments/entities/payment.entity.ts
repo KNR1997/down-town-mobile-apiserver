@@ -92,6 +92,12 @@ export class Payment extends CoreEntity {
 
   // ====== CARD/Payment Method Details (partial, masked) ======
   @Column({ nullable: true })
+  payment_gateway_token!: string;
+
+  @Column({ nullable: true })
+  masked_pan!: string;
+
+  @Column({ nullable: true })
   card_last_four!: string; // Only last 4 digits for security
 
   @Column({ nullable: true })

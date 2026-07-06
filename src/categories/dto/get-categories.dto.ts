@@ -74,4 +74,13 @@ export class CategoryResponseDto {
   @Expose()
   @Type(() => CategoryResponseDto)
   parent: CategoryResponseDto;
+
+  @ApiProperty({
+    type: () => [CategoryResponseDto],
+    description: 'Child categories',
+    isArray: true,
+  })
+  @Expose()
+  @Type(() => CategoryResponseDto)
+  children?: CategoryResponseDto[];
 }

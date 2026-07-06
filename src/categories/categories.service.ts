@@ -65,7 +65,9 @@ export class CategoriesService {
 
     const query = this.categoriesRepository
       .createQueryBuilder('category')
-      .leftJoinAndSelect('category.type', 'type');
+      .leftJoinAndSelect('category.type', 'type')
+      .leftJoinAndSelect('category.parent', 'parent')
+      .leftJoinAndSelect('category.children', 'children');
 
     // SAFE SORTING
     const allowedOrderByFields = ['created_at', 'name', 'slug'];

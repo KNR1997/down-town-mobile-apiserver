@@ -17,11 +17,11 @@ export enum ProductType {
 @Entity()
 export class Product extends CoreEntity {
   @Column()
-  name: string;
+  name!: string;
 
   @Index({ unique: true })
   @Column()
-  slug: string;
+  slug!: string;
 
   @ManyToOne(() => Type, (type) => type.products, {
     onDelete: 'CASCADE',
@@ -42,43 +42,43 @@ export class Product extends CoreEntity {
   shop?: Shop;
 
   @Column({ nullable: true })
-  sku: string;
+  sku!: string;
 
   @Column()
-  unit: string;
+  unit!: string;
 
   @Column({
     type: 'numeric',
     precision: 10,
     scale: 2,
   })
-  price: number;
+  price!: number;
 
   @Column()
-  quantity: number;
+  quantity!: number;
 
   @Column({
     type: 'enum',
     enum: ProductType,
     default: ProductType.SIMPLE,
   })
-  product_type: ProductType;
+  product_type!: ProductType;
 
   @Column({
     type: 'enum',
     enum: ProductStatus,
     default: ProductStatus.PUBLISH,
   })
-  status: ProductStatus;
+  status!: ProductStatus;
 
   @Column({ nullable: true })
   description?: string;
 
   @Column()
-  language: string;
+  language!: string;
 
   @Column('simple-json', { default: ['en'] })
-  translated_languages: string[];
+  translated_languages!: string[];
 
   constructor(item?: Partial<Product>) {
     super();
