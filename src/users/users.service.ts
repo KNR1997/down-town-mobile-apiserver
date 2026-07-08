@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { PermissionType, RoleType, User } from './entities/user.entity';
+import { User } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GetUsersDto } from './dto/get-users.dto';
@@ -10,6 +10,7 @@ import { Address } from './entities/address.entity';
 import { Profile } from './entities/profile.entity';
 import * as bcrypt from 'bcrypt';
 import { PinoLogger } from 'nestjs-pino';
+import { PermissionType, RoleType } from 'src/common/enums';
 
 @Injectable()
 export class UsersService {

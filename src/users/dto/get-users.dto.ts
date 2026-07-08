@@ -6,7 +6,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { AddressResponseDto } from './address.dto';
 import { ProfileResponseDto } from './get-profile.dto';
-import { PermissionType } from '../entities/user.entity';
+import { PermissionType } from 'src/common/enums';
 
 export class UserPaginator extends Paginator<UserResponseDto> {}
 
@@ -16,27 +16,27 @@ export class UserResponseDto {
     example: 1,
   })
   @Expose()
-  id: number;
+  id!: number;
 
   @ApiProperty({
     description: 'The name of the user',
     example: 'john Doe',
   })
   @Expose()
-  name: string;
+  name!: string;
 
   @ApiProperty({
     description: 'The email of the user',
     example: 'test@gmail.com',
   })
   @Expose()
-  email: string;
+  email!: string;
 
   @ApiProperty({
     description: 'The active status of the user',
   })
   @Expose()
-  is_active: boolean;
+  is_active!: boolean;
 
   @ApiProperty({
     description: 'Permissions of the user',
@@ -45,7 +45,7 @@ export class UserResponseDto {
     example: ['store_owner', 'staff'],
   })
   @Expose()
-  permissions: PermissionType[];
+  permissions!: PermissionType[];
 
   @ApiProperty({
     description: 'The address of the user',
@@ -53,7 +53,7 @@ export class UserResponseDto {
   })
   @Expose()
   @Type(() => AddressResponseDto)
-  addresses: AddressResponseDto[];
+  addresses!: AddressResponseDto[];
 
   @ApiProperty({ type: ProfileResponseDto })
   @Expose()

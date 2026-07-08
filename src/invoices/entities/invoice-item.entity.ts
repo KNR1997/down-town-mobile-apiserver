@@ -5,30 +5,30 @@ import { CoreEntity } from 'src/common/entities/core.entity';
 @Entity()
 export class InvoiceItem extends CoreEntity {
   @Column()
-  invoice_id: number;
+  invoice_id!: number;
 
   @Column()
-  order_item_id: number;
+  order_item_id!: number;
 
   @Column()
-  quantity: number;
+  quantity!: number;
 
   @Column({
     type: 'numeric',
     precision: 10,
     scale: 2,
   })
-  unit_price: number;
+  unit_price!: number;
 
   @Column({
     type: 'numeric',
     precision: 10,
     scale: 2,
   })
-  subtotal: number;
+  subtotal!: number;
 
   @ManyToOne(() => Invoice, (invoice) => invoice.items, {
     onDelete: 'CASCADE',
   })
-  invoice: Invoice;
+  invoice!: Invoice;
 }

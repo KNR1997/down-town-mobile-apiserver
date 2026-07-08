@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { PermissionType, RoleType, User } from 'src/users/entities/user.entity';
+import { User } from 'src/users/entities/user.entity';
 import { DataSource, Repository } from 'typeorm';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { paginate } from 'src/common/pagination/paginate';
@@ -13,6 +13,8 @@ import { PinoLogger } from 'nestjs-pino';
 import * as bcrypt from 'bcrypt';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { GetCustomersDto } from './dto/get-customer.dto';
+import { Customer } from './entities/customer.entity';
+import { PermissionType, RoleType } from 'src/common/enums';
 
 @Injectable()
 export class CustomersService {
@@ -25,73 +27,99 @@ export class CustomersService {
     @InjectRepository(Profile)
     private profileRepository: Repository<Profile>,
 
+    @InjectRepository(Customer)
+    private customerRepository: Repository<Customer>,
+
     private readonly logger: PinoLogger,
   ) {}
 
-  async create(createDto: CreateCustomerDto) {
-    return this.dataSource.transaction(async (manager) => {
-      const exists = await manager.exists(User, {
-        where: { email: createDto.email },
-      });
+  // async create(createDto: CreateCustomerDto) {
+  //   return this.dataSource.transaction(async (manager) => {
+  //     const exists = await manager.exists(User, {
+  //       where: { email: createDto.email },
+  //     });
 
-      if (exists) {
-        this.logger.warn(
-          { email: createDto.email },
-          'Customer creation failed: email already exists',
-        );
-        throw new ConflictException(
-          `Customer with email "${createDto.email}" already exists`,
-        );
-      }
+  //     if (exists) {
+  //       this.logger.warn(
+  //         { email: createDto.email },
+  //         'Customer creation failed: email already exists',
+  //       );
+  //       throw new ConflictException(
+  //         `Customer with email "${createDto.email}" already exists`,
+  //       );
+  //     }
 
-      const existsByContact = await manager.exists(Profile, {
-        where: { contact: createDto?.profile?.contact },
-      });
+  //     const existsByContact = await manager.exists(Profile, {
+  //       where: { contact: createDto?.profile?.contact },
+  //     });
 
-      if (existsByContact) {
-        this.logger.warn(
-          { contact: createDto?.profile?.contact },
-          'Customer creation failed: contact number already exists',
-        );
-        throw new ConflictException(
-          `Customer with contact number "${createDto.profile?.contact}" already exists`,
-        );
-      }
+  //     if (existsByContact) {
+  //       this.logger.warn(
+  //         { contact: createDto?.profile?.contact },
+  //         'Customer creation failed: contact number already exists',
+  //       );
+  //       throw new ConflictException(
+  //         `Customer with contact number "${createDto.profile?.contact}" already exists`,
+  //       );
+  //     }
 
-      const hashedPassword = await bcrypt.hash(createDto.password, 10);
+  //     const hashedPassword = await bcrypt.hash(createDto.password, 10);
 
-      const user = manager.create(User, {
-        name: createDto.name,
-        email: createDto.email,
-        password: hashedPassword,
-        role: RoleType.CUSTOMER,
-        permissions: [PermissionType.CUSTOMER],
-      });
+  //     const user = manager.create(User, {
+  //       name: createDto.name,
+  //       email: createDto.email,
+  //       password: hashedPassword,
+  //       role: RoleType.CUSTOMER,
+  //       permissions: [PermissionType.CUSTOMER],
+  //     });
 
-      const createdCustomer = await manager.save(user);
-      this.logger.info(
-        { customerId: createdCustomer.id, email: createdCustomer.email },
-        'Customer created',
-      );
+  //     const createdCustomer = await manager.save(user);
+  //     this.logger.info(
+  //       { customerId: createdCustomer.id, email: createdCustomer.email },
+  //       'Customer created',
+  //     );
 
-      const profile = manager.create(Profile, {
-        user: { id: createdCustomer.id },
-        bio: createDto?.profile?.bio,
-        contact: createDto?.profile?.contact,
-      });
-      this.logger.info({ profileId: profile.id }, 'Profile created');
+  //     const profile = manager.create(Profile, {
+  //       user: { id: createdCustomer.id },
+  //       bio: createDto?.profile?.bio,
+  //       contact: createDto?.profile?.contact,
+  //     });
+  //     this.logger.info({ profileId: profile.id }, 'Profile created');
 
-      await manager.save(profile);
+  //     await manager.save(profile);
 
-      const customer = await manager.findOne(User, {
-        where: { id: createdCustomer.id },
-        relations: {
-          profile: true,
-        },
-      });
+  //     const customer = await manager.findOne(User, {
+  //       where: { id: createdCustomer.id },
+  //       relations: {
+  //         profile: true,
+  //       },
+  //     });
 
-      return customer;
+  //     return customer;
+  //   });
+  // }
+
+  async create_v2(createDto: CreateCustomerDto) {
+    const { contact_number } = createDto;
+    // Check only after slug is determined
+    const exists = await this.customerRepository.exists({
+      where: { contact_number: contact_number },
     });
+
+    if (exists) {
+      throw new ConflictException(
+        `Customer with contact number "${contact_number}" already exists`,
+      );
+    }
+
+    const customer = new Customer();
+
+    customer.name = createDto.name;
+    customer.contact_number = createDto.contact_number;
+    customer.is_active = true;
+    customer.role = RoleType.CUSTOMER;
+
+    return await this.customerRepository.save(customer);
   }
 
   async getCustomers({
@@ -103,29 +131,21 @@ export class CustomersService {
   }: GetCustomersDto) {
     const skip = (page - 1) * limit;
 
-    const query = this.userRepository
-      .createQueryBuilder('user')
-      .leftJoinAndSelect('user.profile', 'profile')
-      .where('user.role = :role', {
-        role: RoleType.CUSTOMER,
-      });
+    const query = this.customerRepository.createQueryBuilder('customer');
 
     // SAFE SORTING
-    const allowedOrderByFields = ['created_at', 'name', 'is_active'];
+    const allowedCustomerFields = ['contact_number'];
 
-    const safeOrderBy = allowedOrderByFields.includes(orderBy)
-      ? orderBy
-      : 'created_at';
+    // const safeOrderBy = allowedOrderByFields.includes(orderBy)
+    //   ? orderBy
+    //   : 'created_at';
 
-    const safeSortedBy = sortedBy?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    // const safeSortedBy = sortedBy?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
-    query.orderBy(`user.${safeOrderBy}`, safeSortedBy);
+    // query.orderBy(`user.${safeOrderBy}`, safeSortedBy);
 
     if (search) {
       const parseSearchParams = search.split(';');
-
-      const allowedUserFields = ['name'];
-      const allowedProfileFields = ['contact'];
 
       for (const param of parseSearchParams) {
         const [key, value] = param.split(':');
@@ -134,20 +154,11 @@ export class CustomersService {
 
         const paramKey = key.replace('.', '_');
 
-        // User fields
-        if (allowedUserFields.includes(key)) {
-          query.andWhere(`user.${key} ILIKE :${paramKey}`, {
+        // Customer fields
+        if (allowedCustomerFields.includes(key)) {
+          query.andWhere(`customer.${key} ILIKE :${paramKey}`, {
             [paramKey]: `%${value}%`,
           });
-        }
-
-        // Profile fields
-        if (allowedProfileFields.includes(key)) {
-          if (allowedProfileFields.includes(key)) {
-            query.andWhere(`profile.${key} ILIKE :${paramKey}`, {
-              [paramKey]: `%${value}%`,
-            });
-          }
         }
       }
     }
@@ -162,83 +173,41 @@ export class CustomersService {
     };
   }
 
-  async update(id: number, updateDto: UpdateCustomerDto): Promise<User> {
-    return this.dataSource.transaction(async (manager) => {
-      const customer = await manager.findOne(User, {
-        where: { id },
-        relations: {
-          profile: true,
-        },
-      });
-
-      if (!customer) {
-        this.logger.warn(
-          { customerId: id },
-          'Customer update failed: not found',
-        );
-
-        throw new NotFoundException(`Customer with id "${id}" not found`);
-      }
-
-      if (customer.profile?.contact != updateDto.profile.contact) {
-        const existsByContact = await manager.exists(Profile, {
-          where: { contact: updateDto?.profile?.contact },
-        });
-
-        if (existsByContact) {
-          this.logger.warn(
-            { contact: updateDto?.profile?.contact },
-            'Customer creation failed: contact number already exists',
-          );
-          throw new ConflictException(
-            `Customer with contact number "${updateDto.profile?.contact}" already exists`,
-          );
-        }
-      }
-
-      customer.name = updateDto.name;
-      customer.email = updateDto.email;
-
-      if (customer.profile) {
-        // Update existing profile
-        customer.profile.contact = updateDto.profile?.contact;
-        customer.profile.bio = updateDto.profile?.bio;
-
-        await manager.save(customer.profile);
-      } else if (updateDto.profile) {
-        // Create new profile
-        const profile = manager.create(Profile, {
-          user: customer,
-          contact: updateDto.profile.contact,
-          bio: updateDto.profile.bio,
-        });
-
-        customer.profile = await manager.save(profile);
-
-        this.logger.info(
-          { customerId: customer.id },
-          'Profile created during customer update',
-        );
-      }
-
-      await manager.save(customer);
-
-      this.logger.info({ customerId: customer.id }, 'Customer updated');
-
-      const updatedCustomer = await manager.findOne(User, {
-        where: { id: customer.id },
-        relations: {
-          profile: true,
-        },
-      });
-
-      if (!updatedCustomer) {
-        throw new NotFoundException(
-          `Customer with id "${customer.id}" not found`,
-        );
-      }
-
-      return updatedCustomer;
+  async findOne(id: number) {
+    const customer = await this.customerRepository.findOne({
+      where: { id },
     });
+
+    if (!customer) {
+      throw new NotFoundException(`Customer with id "${id}" not found`);
+    }
+
+    return customer;
+  }
+
+  async update(id: number, updateDto: UpdateCustomerDto): Promise<Customer> {
+    const { name, contact_number } = updateDto;
+    const customer = await this.customerRepository.findOneBy({ id });
+
+    if (!customer) {
+      throw new NotFoundException(`Category with id "${id}" not found`);
+    }
+
+    if (contact_number !== customer.contact_number) {
+      const exists = await this.customerRepository.exists({
+        where: { contact_number },
+      });
+
+      if (exists) {
+        throw new ConflictException(
+          `Customer with contact number "${contact_number}" already exists`,
+        );
+      }
+    }
+
+    customer.name = name;
+    customer.contact_number = contact_number;
+
+    return await this.customerRepository.save(customer);
   }
 }

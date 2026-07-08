@@ -19,6 +19,7 @@ import { UsersService } from 'src/users/users.service';
 import { ProductsService } from 'src/products/products.service';
 import { NumberGenerator } from 'src/utils/number-generator.util';
 import { OrderStatus, PaymentMethod, PaymentStatus } from 'src/common/enums';
+import { CustomersService } from 'src/customers/customers.service';
 
 @Injectable()
 export class OrdersService {
@@ -29,6 +30,8 @@ export class OrdersService {
     private readonly logger: PinoLogger,
 
     private readonly usersService: UsersService,
+
+    private readonly customersService: CustomersService,
 
     private readonly productsService: ProductsService,
 
@@ -48,7 +51,7 @@ export class OrdersService {
   async create(createOrderDto: CreateOrderDto): Promise<Order> {
     try {
       // Validate customer
-      const customer = await this.usersService.findOne(
+      const customer = await this.customersService.findOne(
         createOrderDto.customer_id,
       );
 

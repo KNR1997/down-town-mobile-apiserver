@@ -44,6 +44,7 @@ import { ApiKeyMiddleware } from './middleware/api-key.middleware';
 import { UsersController } from './users/users.controller';
 import { CategoriesController } from './categories/categories.controller';
 import { UtilsModule } from './utils/utils.module';
+import { Customer } from './customers/entities/customer.entity';
 
 @Module({
   imports: [
@@ -118,6 +119,7 @@ import { UtilsModule } from './utils/utils.module';
           Invoice,
           InvoiceItem,
           Payment,
+          Customer,
         ],
         synchronize: true,
       }),

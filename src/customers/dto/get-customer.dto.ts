@@ -3,9 +3,8 @@ import { Expose, Type } from 'class-transformer';
 import { SortOrder } from 'src/common/dto/generic-conditions.dto';
 import { PaginationArgs } from 'src/common/dto/pagination-args.dto';
 import { Paginator } from 'src/common/dto/paginator.dto';
-import { AddressResponseDto } from 'src/users/dto/address.dto';
+import { PermissionType } from 'src/common/enums';
 import { ProfileResponseDto } from 'src/users/dto/get-profile.dto';
-import { PermissionType } from 'src/users/entities/user.entity';
 
 export class CustomerResponseDto {
   @ApiProperty({
@@ -13,63 +12,71 @@ export class CustomerResponseDto {
     example: 1,
   })
   @Expose()
-  id: number;
+  id!: number;
 
   @ApiProperty({
     description: 'The name of the user',
     example: 'john',
   })
   @Expose()
-  name: string;
+  name!: string;
+
+
+  @ApiProperty({
+    description: 'The contact number of the user',
+    example: 'john',
+  })
+  @Expose()
+  contact_number!: string;
 
   @ApiProperty({
     description: 'The email of the user',
     example: 'john@gmail.com',
   })
   @Expose()
-  email: string;
+  email!: string;
 
   @ApiProperty({
     description: 'The active status of the user',
   })
   @Expose()
-  is_active: boolean;
+  is_active!: boolean;
 
-  @ApiProperty({
-    description: 'Permissions of the user',
-    enum: PermissionType,
-    isArray: true,
-    example: ['store_owner', 'staff'],
-  })
-  @Expose()
-  permissions: PermissionType[];
+  // @ApiProperty({
+  //   description: 'Permissions of the user',
+  //   enum: PermissionType,
+  //   isArray: true,
+  //   example: ['store_owner', 'staff'],
+  // })
+  // @Expose()
+  // permissions!: PermissionType[];
 
-  @ApiProperty({ type: ProfileResponseDto })
-  @Expose()
-  @Type(() => ProfileResponseDto)
-  profile?: ProfileResponseDto;
+  // @ApiProperty({ type: ProfileResponseDto })
+  // @Expose()
+  // @Type(() => ProfileResponseDto)
+  // profile?: ProfileResponseDto;
 }
 
 export class CreateCustomerResponseDto {
   @ApiProperty({ example: 'Customer created successfully' })
-  message: string;
+  message!: string;
 
   @ApiProperty({ example: 201 })
-  statusCode: number;
+  statusCode!: number;
 
   @ApiProperty({ type: CustomerResponseDto })
-  data: CustomerResponseDto;
+  data!: CustomerResponseDto;
 }
 
 export class UpdateCustomerResponseDto {
   @ApiProperty({ example: 'Customer updated successfully' })
-  message: string;
+  message!: string;
 
   @ApiProperty({ example: 200 })
-  statusCode: number;
+  statusCode!: number;
 
   @ApiProperty({ type: CustomerResponseDto })
-  data: CustomerResponseDto;
+  data!: CustomerResponseDto;
 }
 
 export class CustomerPaginator extends Paginator<CustomerResponseDto> {}

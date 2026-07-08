@@ -21,7 +21,12 @@ export class OrderItem extends CoreEntity {
   })
   unit_price!: number;
 
-  @Column({ default: 0 })
+  @Column({
+    type: 'numeric',
+    precision: 10,
+    scale: 2,
+    default: 0.00,
+  })
   discount!: number;
 
   @Column({
@@ -31,7 +36,12 @@ export class OrderItem extends CoreEntity {
   })
   discount_type!: string;
 
-  @Column({ default: 0 })
+  @Column({
+    type: 'numeric',
+    precision: 10,
+    scale: 2,
+    default: 0.00,
+  })
   discount_total!: number;
 
   @Column({

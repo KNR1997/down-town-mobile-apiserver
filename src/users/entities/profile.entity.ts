@@ -5,13 +5,13 @@ import { User } from './user.entity';
 @Entity()
 export class Profile extends CoreEntity {
   @Column({ nullable: true })
-  bio: string;
+  bio!: string;
 
   @Column({ nullable: true })
-  social: string;
+  social!: string;
 
   @Column({ nullable: true })
-  contact: string;
+  contact!: string;
 
   @OneToOne(() => User, (user) => user.profile)
   user?: User;

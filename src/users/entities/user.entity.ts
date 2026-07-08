@@ -11,32 +11,19 @@ import {
 import { Profile } from './profile.entity';
 import { Address } from './address.entity';
 import { Order } from 'src/orders/entities/order.entity';
-
-export enum RoleType {
-  SUPER_ADMIN = 'super_admin',
-  STORE_OWNER = 'store_owner',
-  STAFF = 'staff',
-  CUSTOMER = 'customer',
-}
-
-export enum PermissionType {
-  SUPER_ADMIN = 'super_admin',
-  STORE_OWNER = 'store_owner',
-  STAFF = 'staff',
-  CUSTOMER = 'customer',
-}
+import { PermissionType, RoleType } from 'src/common/enums';
 
 @Entity()
 export class User extends CoreEntity {
   @Column()
-  name: string;
+  name!: string;
 
   @Index({ unique: true })
   @Column()
-  email: string;
+  email!: string;
 
   @Column()
-  password: string;
+  password!: string;
 
   @Column({ default: true })
   is_active?: boolean;
@@ -44,9 +31,9 @@ export class User extends CoreEntity {
   @Column({
     type: 'enum',
     enum: RoleType,
-    default: RoleType.SUPER_ADMIN,
+    default: RoleType.STAFF,
   })
-  role: RoleType;
+  role!: RoleType;
 
   @Column({
     type: 'enum',
@@ -54,7 +41,7 @@ export class User extends CoreEntity {
     array: true,
     default: [],
   })
-  permissions: PermissionType[];
+  permissions!: PermissionType[];
 
   @OneToMany(() => Shop, (shop) => shop.owner)
   shops?: Shop[];

@@ -8,9 +8,10 @@ import { RegisterDto } from './dto/create-auth.dto';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { PermissionType, RoleType, User } from 'src/users/entities/user.entity';
+import { User } from 'src/users/entities/user.entity';
 import { UpdateEmailDto } from './dto/update-email.dto';
 import { UpdateUserDto } from 'src/users/dto/update-user.dto';
+import { PermissionType, RoleType } from 'src/common/enums';
 
 type AuthInput = { email: string; password: string };
 type SignInData = { userId: number; name: string; email: string };

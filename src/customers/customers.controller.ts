@@ -5,21 +5,8 @@ import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
-import {
-  ApiBadRequestResponse,
-  ApiConflictResponse,
-  ApiNotFoundResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
-import {
-  CreateCustomerResponseDto,
-  CustomerPaginator,
-  CustomerResponseDto,
-  GetCustomersDto,
-  UpdateCustomerResponseDto,
-} from './dto/get-customer.dto';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { CustomerResponseDto, GetCustomersDto } from './dto/get-customer.dto';
 
 @ApiTags('customers')
 @Controller('customers')
@@ -29,16 +16,13 @@ export class CustomersController {
     private readonly logger: PinoLogger,
   ) {}
 
+  @ApiOperation({ summary: 'Create customer' })
+  @ApiResponse({
+    status: 201,
+    description: 'The customer has been successfully created.',
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
   @Post()
-  @ApiOperation({ summary: 'Create a new customer' })
-  @ApiOkResponse({ type: CreateCustomerResponseDto })
-  @ApiConflictResponse({
-    description: 'Customer with this email already exists.',
-  })
-  @ApiConflictResponse({
-    description: 'Customer with this contact number already exists.',
-  })
-  @ApiBadRequestResponse({ description: 'Invalid data provided.' })
   async create(@Body() createDto: CreateCustomerDto) {
     this.logger.debug(
       {
@@ -47,7 +31,7 @@ export class CustomersController {
       'Create customer request received',
     );
 
-    const customer = await this.customersService.create(createDto);
+    const customer = await this.customersService.create_v2(createDto);
 
     const data = plainToInstance(CustomerResponseDto, customer, {
       excludeExtraneousValues: true,
@@ -60,12 +44,9 @@ export class CustomersController {
     });
   }
 
-  @Get()
   @ApiOperation({ summary: 'Get paginated customers' })
-  @ApiOkResponse({
-    description: 'List of customers retrieved successfully.',
-    type: CustomerPaginator,
-  })
+  @ApiResponse({ status: 200, description: 'Return all customers.' })
+  @Get()
   async findAll(@Query() query: GetCustomersDto) {
     this.logger.debug(
       {
@@ -92,15 +73,33 @@ export class CustomersController {
     });
   }
 
+  @ApiOperation({ summary: 'Get customer' })
+  @ApiResponse({ status: 200, description: 'Return customer.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  @Get(':id')
+  async findOne(@Param('id') id: number) {
+    this.logger.debug({ id }, 'Get customer by id request received');
+
+    const user = await this.customersService.findOne(id);
+
+    const data = plainToInstance(CustomerResponseDto, user, {
+      excludeExtraneousValues: true,
+    });
+
+    return new SuccessResponseDto<CustomerResponseDto>({
+      message: 'Get customer by id successful.',
+      statusCode: 200,
+      data,
+    });
+  }
+
+  @ApiOperation({ summary: 'Update customer' })
+  @ApiResponse({
+    status: 201,
+    description: 'The customer has been successfully updated.',
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
   @Put(':id')
-  @ApiOperation({ summary: 'Update a customer' })
-  @ApiOkResponse({
-    description: 'Customer updated successfully.',
-    type: UpdateCustomerResponseDto,
-  })
-  @ApiNotFoundResponse({
-    description: 'Customer with id not found.',
-  })
   async update(
     @Param('id') id: string,
     @Body() updateCustomerDto: UpdateCustomerDto,

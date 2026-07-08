@@ -4,6 +4,7 @@ import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 import { OrderItem } from './order-item.entity';
 import { Payment } from 'src/payments/entities/payment.entity';
 import { OrderStatus, PaymentStatus } from 'src/common/enums';
+import { Customer } from 'src/customers/entities/customer.entity';
 
 @Entity()
 export class Order extends CoreEntity {
@@ -109,11 +110,17 @@ export class Order extends CoreEntity {
   })
   payment_status!: string;
 
-  @ManyToOne(() => User, (user) => user.orders, {
+  // @ManyToOne(() => User, (user) => user.orders, {
+  //   nullable: true,
+  //   onDelete: 'CASCADE',
+  // })
+  // customer?: User;
+
+  @ManyToOne(() => Customer, (customer) => customer.orders, {
     nullable: true,
     onDelete: 'CASCADE',
   })
-  customer?: User;
+  customer?: Customer;
 
   @OneToMany(() => OrderItem, (item) => item.order, {
     cascade: true, // optional but useful

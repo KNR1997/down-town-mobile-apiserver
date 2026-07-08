@@ -18,7 +18,6 @@ import {
 } from './dto/get-users.dto';
 import { plainToInstance } from 'class-transformer';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
-import { PermissionType, RoleType } from './entities/user.entity';
 import { PinoLogger } from 'nestjs-pino';
 import { BlockUserDto } from './dto/block-user.dto';
 import { UnBlockUserDto } from './dto/unblock-user.dto';
@@ -30,6 +29,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { PermissionType, RoleType } from 'src/common/enums';
 
 @ApiTags('users')
 @Controller('users')

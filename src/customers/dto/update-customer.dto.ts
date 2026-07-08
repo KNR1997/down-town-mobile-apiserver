@@ -1,19 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { UpdateProfileDto } from 'src/users/dto/update-profile.dto';
 
 export class UpdateCustomerDto {
   @ApiProperty({
-    description: 'The name of the user',
+    description: 'The name of the customer',
     example: 'john',
   })
-  name: string;
+  name!: string;
 
   @ApiProperty({
-    description: 'The email of the user',
-    example: 'john@gmail.com',
+    description: 'The contact number of the customer',
+    example: '011123456',
   })
-  email: string;
-
-  @ApiProperty({ type: UpdateProfileDto })
-  profile: UpdateProfileDto;
+  contact_number!: string;
 }
