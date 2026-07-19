@@ -1,8 +1,18 @@
 import { Category } from 'src/categories/entities/category.entity';
 import { CoreEntity } from 'src/common/entities/core.entity';
+import { Inventory } from 'src/inventories/entities/inventory.entity';
 import { Shop } from 'src/shops/entities/shop.entity';
+import { StockMovement } from 'src/stock-movements/entities/stock-movement.entity';
 import { Type } from 'src/types/entities/type.entity';
-import { Column, Entity, Index, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Index,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 
 export enum ProductStatus {
   PUBLISH = 'publish',
@@ -79,6 +89,12 @@ export class Product extends CoreEntity {
 
   @Column('simple-json', { default: ['en'] })
   translated_languages!: string[];
+
+  @OneToMany(() => Inventory, (inventory) => inventory.product)
+  inventories!: Inventory[];
+
+  @OneToMany(() => StockMovement, (stock_movement) => stock_movement.product)
+  stock_movements!: StockMovement[];
 
   constructor(item?: Partial<Product>) {
     super();

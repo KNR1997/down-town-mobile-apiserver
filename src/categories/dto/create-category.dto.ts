@@ -7,7 +7,7 @@ export class CreateCategoryDto {
     example: 'Grocery',
   })
   @IsString()
-  name: string;
+  name!: string;
 
   @ApiProperty({
     description: 'The slug of the category',
@@ -22,7 +22,7 @@ export class CreateCategoryDto {
     example: 'grocery',
   })
   @IsString()
-  icon: string;
+  icon!: string;
 
   @ApiProperty({
     description: 'The details of the category',
@@ -37,17 +37,17 @@ export class CreateCategoryDto {
     example: 'en',
   })
   @IsString()
-  language: string;
+  language!: string;
 
   @ApiProperty({
     description: 'The Type id of the Category',
     example: 1,
   })
-  type_id: number;
+  type_id!: number;
 
   @ApiProperty({
     description: 'The parent id of the Category',
     example: 1,
   })
-  parent: number;
+  parent!: number;
 }

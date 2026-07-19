@@ -4,3 +4,6 @@ export * from './invoice-status.enum';
 export * from './payment-method.enum';
 export * from './role-type.enum';
 export * from './permission-type.enum';
+export * from './grn-status.enum';
+export * from './stock-movement.enum';
+export * from './purchase-order-status.enum';

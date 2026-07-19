@@ -45,6 +45,20 @@ import { UsersController } from './users/users.controller';
 import { CategoriesController } from './categories/categories.controller';
 import { UtilsModule } from './utils/utils.module';
 import { Customer } from './customers/entities/customer.entity';
+import { GrnsModule } from './grns/grns.module';
+import { StockMovementsModule } from './stock-movements/stock-movements.module';
+import { SuppliersModule } from './suppliers/suppliers.module';
+import { WarehousesModule } from './warehouses/warehouses.module';
+import { InventoriesModule } from './inventories/inventories.module';
+import { Supplier } from './suppliers/entities/supplier.entity';
+import { GoodsReceivedNote } from './grns/entities/grn.entity';
+import { GoodsReceivedItem } from './grns/entities/grn-item.entity';
+import { Warehouse } from './warehouses/entities/warehouse.entity';
+import { Inventory } from './inventories/entities/inventory.entity';
+import { StockMovement } from './stock-movements/entities/stock-movement.entity';
+import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
+import { PurchaseOrder } from './purchase-orders/entities/purchase-order.entity';
+import { PurchaseOrderItem } from './purchase-orders/entities/purchase-order-item.entity';
 
 @Module({
   imports: [
@@ -120,6 +134,14 @@ import { Customer } from './customers/entities/customer.entity';
           InvoiceItem,
           Payment,
           Customer,
+          Warehouse,
+          Inventory,
+          StockMovement,
+          GoodsReceivedNote,
+          GoodsReceivedItem,
+          Supplier,
+          PurchaseOrder,
+          PurchaseOrderItem,
         ],
         synchronize: true,
       }),
@@ -130,6 +152,12 @@ import { Customer } from './customers/entities/customer.entity';
         return addTransactionalDataSource(new DataSource(options));
       },
     }),
+    GrnsModule,
+    StockMovementsModule,
+    SuppliersModule,
+    WarehousesModule,
+    InventoriesModule,
+    PurchaseOrdersModule,
   ],
   controllers: [],
   providers: [],

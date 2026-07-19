@@ -13,56 +13,56 @@ export class ProductResponseDto {
     example: 1,
   })
   @Expose()
-  id: number;
+  id!: number;
 
   @ApiProperty({
     description: 'The name of the product',
     example: 'Apple',
   })
   @Expose()
-  name: string;
+  name!: string;
 
   @ApiProperty({
     description: 'The slug of the product',
     example: 'apple',
   })
   @Expose()
-  slug: string;
+  slug!: string;
 
   @ApiProperty({
     description: 'The sku of the product',
     example: 'apple',
   })
   @Expose()
-  sku: string;
+  sku!: string;
 
   @ApiProperty({
     description: 'The unit of the product',
     example: 'apple',
   })
   @Expose()
-  unit: string;
+  unit!: string;
 
   @ApiProperty({
     description: 'The description of the product',
     example: 'apple',
   })
   @Expose()
-  description: string;
+  description!: string;
 
   @ApiProperty({
     description: 'The price of the product',
     example: 'apple',
   })
   @Expose()
-  price: number;
+  price!: number;
 
   @ApiProperty({
     description: 'The quantity of the product',
     example: 'apple',
   })
   @Expose()
-  quantity: number;
+  quantity!: number;
 
   @ApiProperty({
     description: 'The type of the product',
@@ -70,7 +70,7 @@ export class ProductResponseDto {
     example: ProductType.SIMPLE,
   })
   @Expose()
-  product_type: ProductType;
+  product_type!: ProductType;
 
   @ApiProperty({
     description: 'Product categories',
@@ -78,7 +78,7 @@ export class ProductResponseDto {
   })
   @Expose()
   @Type(() => CategoryResponseDto)
-  categories: CategoryResponseDto[];
+  categories!: CategoryResponseDto[];
 
   @ApiProperty({
     description: 'The status of the product',
@@ -86,12 +86,12 @@ export class ProductResponseDto {
     example: ProductStatus.PUBLISH,
   })
   @Expose()
-  status: ProductStatus;
+  status!: ProductStatus;
 
   @ApiProperty({ type: TypeResponseDto })
   @Expose()
   @Type(() => TypeResponseDto)
-  type: TypeResponseDto;
+  type!: TypeResponseDto;
 
   @ApiProperty({
     description: 'The translated languages of the product',
@@ -99,29 +99,29 @@ export class ProductResponseDto {
     isArray: true,
   })
   @Expose()
-  translated_languages: string[];
+  translated_languages!: string[];
 }
 
 export class CreateProductResponseDto {
   @ApiProperty({ example: 'Product created successfully' })
-  message: string;
+  message!: string;
 
   @ApiProperty({ example: 201 })
-  statusCode: number;
+  statusCode!: number;
 
   @ApiProperty({ type: ProductResponseDto })
-  data: ProductResponseDto;
+  data!: ProductResponseDto;
 }
 
 export class UpdateProductResponseDto {
   @ApiProperty({ example: 'Product updated successfully' })
-  message: string;
+  message!: string;
 
   @ApiProperty({ example: 200 })
-  statusCode: number;
+  statusCode!: number;
 
   @ApiProperty({ type: ProductResponseDto })
-  data: ProductResponseDto;
+  data!: ProductResponseDto;
 }
 
 export class ProductPaginator extends Paginator<ProductResponseDto> {}
