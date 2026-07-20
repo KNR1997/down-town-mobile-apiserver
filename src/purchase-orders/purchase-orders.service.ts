@@ -5,7 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
-import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
+import {
+  UpdatePurchaseOrderDto,
+  UpdatePurchaseOrderItemDto,
+} from './dto/update-purchase-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Supplier } from 'src/suppliers/entities/supplier.entity';
@@ -193,7 +196,9 @@ export class PurchaseOrdersService {
       }
 
       if (purchaseOrder.status !== PurchaseOrderStatus.DRAFT) {
-        throw new BadRequestException('Only draft Purchase Orders can be approved.');
+        throw new BadRequestException(
+          'Only draft Purchase Orders can be approved.',
+        );
       }
 
       const user = await this.userRepository.findOne({
@@ -244,10 +249,10 @@ export class PurchaseOrdersService {
   }: GetPurchaseOrdersDto) {
     const skip = (page - 1) * limit;
 
-  const query = this.purchaseOrderRepository
-    .createQueryBuilder('purchase_orders')
-    .leftJoinAndSelect('purchase_orders.supplier', 'supplier')
-    .leftJoinAndSelect('purchase_orders.warehouse', 'warehouse');
+    const query = this.purchaseOrderRepository
+      .createQueryBuilder('purchase_orders')
+      .leftJoinAndSelect('purchase_orders.supplier', 'supplier')
+      .leftJoinAndSelect('purchase_orders.warehouse', 'warehouse');
 
     // SAFE SORTING
     const allowedOrderByFields = ['created_at', 'name', 'slug'];
@@ -283,6 +288,7 @@ export class PurchaseOrdersService {
         items: {
           product: true,
         },
+        approved_by: true,
       },
     });
 
@@ -293,8 +299,90 @@ export class PurchaseOrdersService {
     return purchaseOrder;
   }
 
-  update(id: number, updatePurchaseOrderDto: UpdatePurchaseOrderDto) {
-    return `This action updates a #${id} purchaseOrder`;
+  @Transactional()
+  async update(id: number, dto: UpdatePurchaseOrderDto) {
+    const purchaseOrder = await this.purchaseOrderRepository.findOne({
+      where: { id },
+      relations: {
+        items: true,
+      },
+    });
+
+    if (!purchaseOrder) throw new NotFoundException();
+
+    if (purchaseOrder.status === PurchaseOrderStatus.APPROVED)
+      throw new BadRequestException();
+
+    purchaseOrder.warehouse = { id: dto.warehouse_id } as Warehouse;
+    purchaseOrder.supplier = { id: dto.supplier_id } as Supplier;
+
+    const incomingIds = dto.items.filter((i) => i.id).map((i) => i.id);
+
+    const removedItems = purchaseOrder.items.filter(
+      (item) => !incomingIds.includes(item.id),
+    );
+
+    await this.purchaseOrderItemRepository.remove(removedItems);
+
+    this.syncItems(purchaseOrder, dto.items);
+
+    if (dto.is_approved) {
+      await this.approveEntity(purchaseOrder, dto.approved_by);
+    }
+
+    return this.purchaseOrderRepository.save(purchaseOrder);
+  }
+
+  private syncItems(
+    purchaseOrder: PurchaseOrder,
+    itemDtos: UpdatePurchaseOrderItemDto[],
+  ) {
+    const existing = new Map(purchaseOrder.items.map((i) => [i.id, i]));
+
+    const updatedItems: PurchaseOrderItem[] = [];
+
+    for (const dto of itemDtos) {
+      let item: PurchaseOrderItem;
+
+      if (dto.id && existing.has(dto.id)) {
+        item = existing.get(dto.id)!;
+      } else {
+        item = new PurchaseOrderItem();
+        item.purchaseOrder = purchaseOrder;
+      }
+
+      item.product = { id: dto.product_id } as Product;
+      item.ordered_quantity = dto.quantity;
+      item.purchase_price = dto.purchase_price ?? 0;
+
+      updatedItems.push(item);
+    }
+
+    purchaseOrder.items = updatedItems;
+  }
+
+  async approveEntity(purchaseOrder: PurchaseOrder, approvedBy: number) {
+    // Validation logic
+    if (purchaseOrder.status !== PurchaseOrderStatus.DRAFT) {
+      throw new BadRequestException(
+        'Only draft Purchase Orders can be approved.',
+      );
+    }
+
+    const user = await this.userRepository.findOne({
+      where: { id: approvedBy },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    // Update the entity directly
+    purchaseOrder.status = PurchaseOrderStatus.APPROVED;
+    purchaseOrder.approved_at = new Date();
+    purchaseOrder.approved_by = user;
+
+    // No save here - let the update method handle it
   }
 
   remove(id: number) {
@@ -302,7 +390,5 @@ export class PurchaseOrdersService {
   }
 
   @Transactional()
-  async createGrn() {
-    
-  }
+  async createGrn() {}
 }
