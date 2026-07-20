@@ -54,6 +54,8 @@ export class PurchaseOrder extends CoreEntity {
 
   @OneToMany(() => PurchaseOrderItem, (item) => item.purchaseOrder, {
     cascade: true,
+    eager: false,
+    orphanedRowAction: 'delete',
   })
   items!: PurchaseOrderItem[];
 }
