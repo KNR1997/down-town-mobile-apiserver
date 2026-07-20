@@ -76,9 +76,9 @@ export class PurchaseOrdersController {
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @Get(':id')
   async findOne(@Param('id') id: number) {
-    const grn = await this.purchaseOrdersService.findOne(id);
+    const result = await this.purchaseOrdersService.findOne(id);
 
-    const data = plainToInstance(PurchaseOrderResponseDto, grn, {
+    const data = plainToInstance(PurchaseOrderResponseDto, result, {
       excludeExtraneousValues: true,
     });
 
@@ -89,12 +89,28 @@ export class PurchaseOrdersController {
     });
   }
 
+  @ApiOperation({ summary: 'Update purchase order' })
+  @ApiResponse({
+    status: 201,
+    description: 'The purchase order has been successfully updated.',
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
   @Put(':id')
-  update(
+  async update(
     @Param('id') id: string,
-    @Body() updatePurchaseOrderDto: UpdatePurchaseOrderDto,
+    @Body() updateDto: UpdatePurchaseOrderDto,
   ) {
-    return this.purchaseOrdersService.update(+id, updatePurchaseOrderDto);
+    const result = await this.purchaseOrdersService.update(+id, updateDto);
+
+    const data = plainToInstance(PurchaseOrderResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
+
+    return new SuccessResponseDto<PurchaseOrderResponseDto>({
+      message: 'Purchase Order updated successfully',
+      statusCode: 200,
+      data,
+    });
   }
 
   @Delete(':id')
