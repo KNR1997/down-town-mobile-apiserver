@@ -13,6 +13,16 @@ import {
 
 export class PurchaseOrderItemDto {
   @ApiProperty({
+    description: 'Unique identifier',
+    example: 1,
+    required: true,
+  })
+  @IsNumber()
+  @IsPositive()
+  @IsOptional()
+  id!: number;
+
+  @ApiProperty({
     description: 'Product ID',
     example: 1,
     required: true,

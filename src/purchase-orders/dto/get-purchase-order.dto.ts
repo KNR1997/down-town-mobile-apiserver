@@ -7,6 +7,7 @@ import { GRNStatus, PurchaseOrderStatus } from 'src/common/enums';
 import { SupplierResponseDto } from 'src/suppliers/dto/get-supplier.dto';
 import { WarehouseResponseDto } from 'src/warehouses/dto/get-warehouse.dto';
 import { ProductResponseDto } from 'src/products/dto/get-products.dto';
+import { UserResponseDto } from 'src/users/dto/get-users.dto';
 
 export class PurchaseOrderPaginator extends Paginator<PurchaseOrderResponseDto> {}
 
@@ -24,6 +25,13 @@ export enum QueryCategoriesOrderByColumn {
 }
 
 export class PurchaseOrderItemResponseDto {
+  @ApiProperty({
+    description: 'Unique identifier',
+    example: 1,
+  })
+  @Expose()
+  id!: number;
+
   @ApiProperty({ type: ProductResponseDto })
   @Expose()
   @Type(() => ProductResponseDto)
@@ -77,6 +85,11 @@ export class PurchaseOrderResponseDto {
   @Expose()
   @Type(() => SupplierResponseDto)
   supplier!: SupplierResponseDto;
+
+  @ApiProperty({ type: UserResponseDto })
+  @Expose()
+  @Type(() => UserResponseDto)
+  approved_by!: UserResponseDto;
 
   @ApiProperty({ type: WarehouseResponseDto })
   @Expose()
