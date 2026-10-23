@@ -1,16 +1,15 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { PickType } from '@nestjs/swagger';
+import { Profile } from '../entities/profile.entity';
 
-export class CreateProfileDto {
-  @ApiProperty({
-    description: 'The bio of the profile',
-    example: 'shop owner',
-  })
-  bio: string;
+export class CreateProfileDto extends PickType(Profile, [
+  'avatar',
+  'bio',
+  'socials',
+  'contact',
+]) {
+  customer: ConnectBelongsTo;
+}
 
-  @ApiProperty({
-    description: 'The contact of the profile',
-    example: '+94113123888',
-  })
-  contact: string;
-  // social: string;
+export class ConnectBelongsTo {
+  connect: number;
 }

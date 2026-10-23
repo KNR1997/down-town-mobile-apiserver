@@ -1,441 +1,395 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Order } from './entities/order.entity';
-import { GetOrdersDto } from './dto/get-order.dto';
+import exportOrderJson from '@db/order-export.json';
+import orderFilesJson from '@db/order-files.json';
+import orderInvoiceJson from '@db/order-invoice.json';
+import orderStatusJson from '@db/order-statuses.json';
+import ordersJson from '@db/orders.json';
+import paymentGatewayJson from '@db/payment-gateway.json';
+import paymentIntentJson from '@db/payment-intent.json';
+import setting from '@db/settings.json';
+import { Injectable } from '@nestjs/common';
+import { plainToClass } from 'class-transformer';
+import Fuse from 'fuse.js';
+import { AuthService } from 'src/auth/auth.service';
 import { paginate } from 'src/common/pagination/paginate';
-import { OrderItem } from './entities/order-item.entity';
-import { PinoLogger } from 'nestjs-pino';
-import { PaymentsService } from 'src/payments/payments.service';
-import { InvoicesService } from 'src/invoices/invoices.service';
-import { Transactional } from 'typeorm-transactional';
-import { UsersService } from 'src/users/users.service';
-import { ProductsService } from 'src/products/products.service';
-import { NumberGenerator } from 'src/utils/number-generator.util';
-import { OrderStatus, PaymentMethod, PaymentStatus } from 'src/common/enums';
-import { CustomersService } from 'src/customers/customers.service';
+import { PaymentIntent } from 'src/payment-intent/entries/payment-intent.entity';
+import { PaymentGateWay } from 'src/payment-method/entities/payment-gateway.entity';
+import { PaypalPaymentService } from 'src/payment/paypal-payment.service';
+import { StripePaymentService } from 'src/payment/stripe-payment.service';
+import { Setting } from 'src/settings/entities/setting.entity';
+import {
+  CreateOrderStatusDto,
+  UpdateOrderStatusDto,
+} from './dto/create-order-status.dto';
+import { CreateOrderDto } from './dto/create-order.dto';
+import { GetOrderFilesDto } from './dto/get-downloads.dto';
+import {
+  GetOrderStatusesDto,
+  OrderStatusPaginator,
+} from './dto/get-order-statuses.dto';
+import { GetOrdersDto, OrderPaginator } from './dto/get-orders.dto';
+import { UpdateOrderDto } from './dto/update-order.dto';
+import {
+  CheckoutVerificationDto,
+  VerifiedCheckoutData,
+} from './dto/verify-checkout.dto';
+import { OrderStatus } from './entities/order-status.entity';
+import {
+  Order,
+  OrderFiles,
+  OrderStatusType,
+  PaymentGatewayType,
+  PaymentStatusType,
+} from './entities/order.entity';
+
+const orders = plainToClass(Order, ordersJson);
+const paymentIntents = plainToClass(PaymentIntent, paymentIntentJson);
+const paymentGateways = plainToClass(PaymentGateWay, paymentGatewayJson);
+const orderStatus = plainToClass(OrderStatus, orderStatusJson);
+
+const options = {
+  keys: ['name'],
+  threshold: 0.3,
+};
+const fuse = new Fuse(orderStatus, options);
+
+const orderFiles = plainToClass(OrderFiles, orderFilesJson);
+const settings = plainToClass(Setting, setting);
 
 @Injectable()
 export class OrdersService {
+  private orders: Order[] = orders;
+  private orderStatus: OrderStatus[] = orderStatus;
+  private orderFiles: OrderFiles[] = orderFiles;
+  private setting: Setting = { ...settings };
+
   constructor(
-    @InjectRepository(Order)
-    private orderRepository: Repository<Order>,
+    private readonly authService: AuthService,
+    private readonly stripeService: StripePaymentService,
+    private readonly paypalService: PaypalPaymentService,
+  ) {}
+  async create(createOrderInput: CreateOrderDto): Promise<Order> {
+    const order: Order = this.orders[0];
+    const payment_gateway_type = createOrderInput.payment_gateway
+      ? createOrderInput.payment_gateway
+      : PaymentGatewayType.CASH_ON_DELIVERY;
+    order.payment_gateway = payment_gateway_type;
+    order.payment_intent = null;
+    // set the order type and payment type
 
-    private readonly logger: PinoLogger,
-
-    private readonly usersService: UsersService,
-
-    private readonly customersService: CustomersService,
-
-    private readonly productsService: ProductsService,
-
-    private readonly paymentsService: PaymentsService,
-
-    private readonly invoicesService: InvoicesService,
-
-    private numberGenerator: NumberGenerator,
-  ) {
-    this.logger.setContext(OrdersService.name);
-  }
-
-  /**
-   * Create a new order with payment and invoice
-   */
-  @Transactional()
-  async create(createOrderDto: CreateOrderDto): Promise<Order> {
+    switch (payment_gateway_type) {
+      case PaymentGatewayType.CASH_ON_DELIVERY:
+        order.order_status = OrderStatusType.PROCESSING;
+        order.payment_status = PaymentStatusType.CASH_ON_DELIVERY;
+        break;
+      case PaymentGatewayType.CASH:
+        order.order_status = OrderStatusType.PROCESSING;
+        order.payment_status = PaymentStatusType.CASH;
+        break;
+      case PaymentGatewayType.FULL_WALLET_PAYMENT:
+        order.order_status = OrderStatusType.COMPLETED;
+        order.payment_status = PaymentStatusType.WALLET;
+        break;
+      default:
+        order.order_status = OrderStatusType.PENDING;
+        order.payment_status = PaymentStatusType.PENDING;
+        break;
+    }
+    order.children = this.processChildrenOrder(order);
     try {
-      // Validate customer
-      const customer = await this.customersService.findOne(
-        createOrderDto.customer_id,
-      );
-
-      // Create Order
-      const order = new Order();
-      // order.tracking_number = uuidv4();
-      order.tracking_number =
-        await this.numberGenerator.generateOrderTrackingNumber();
-      order.customer = { id: createOrderDto.customer_id } as any;
-      order.customer_contact = createOrderDto.customer_contact;
-      order.customer_name = createOrderDto.customer_name;
-      order.amount = createOrderDto.amount;
-      order.paid_total = createOrderDto.amount;
-      order.total = createOrderDto.amount;
-      order.order_status = OrderStatus.COMPLETED;
-      order.payment_status = PaymentStatus.SUCCESS; // Todo -> check this status
-
-      // Create order items
-      order.items = await Promise.all(
-        createOrderDto.products.map(async (product) => {
-          const productData = await this.productsService.findOne(
-            product.product_id,
-          );
-          this.logger.debug(
-            { productId: productData?.id },
-            'Product fetch from database',
-          );
-
-          // Check stock availability
-          if (productData.quantity < product.order_quantity) {
-            throw new BadRequestException(
-              `Insufficient stock for product "${productData.name}". Available: ${productData.quantity}, Requested: ${product.order_quantity}`,
-            );
-          }
-
-          const item = new OrderItem();
-          item.product_id = product.product_id;
-          item.product_name = productData.name;
-          item.order_quantity = product.order_quantity;
-          item.unit_price = productData.price;
-          if (product.discount_type != null) {
-            item.discount = product.discount;
-            item.discount_type = product.discount_type;
-            item.discount_total = product.discount_total;
-          }
-          item.subtotal = productData.price * product.order_quantity;
-
-          // Reduce product quantity
-          await this.productsService.decreaseQuantity(
-            product.product_id,
-            product.order_quantity,
-          );
-
-          this.logger.debug({ orderItem: item?.id }, 'Order item created');
-          return item;
-        }),
-      );
-
-      const savedOrder = await this.orderRepository.save(order);
-      this.logger.info({ orderId: savedOrder.id }, 'Order created');
-
-      // Create Payment
-      const createPaymentDto = {
-        order_id: savedOrder.id,
-        amount: order.amount,
-        tax_amount: order.sales_tax || 0,
-        shipping_cost: order.delivery_fee || 0,
-        discount_amount: order.discount || 0,
-        net_amount: order.total,
-        payment_method: createOrderDto.payment_method,
-        payment_gateway: createOrderDto.payment_gateway,
-        card_details: createOrderDto.card_details,
-        gateway_transaction_id: createOrderDto.gateway_transaction_id,
-        status: PaymentStatus.PENDING,
-        status_message: 'Payment initialized',
-        customer_email: customer.email,
-        customer_phone: createOrderDto.customer_contact,
-      };
-      const payment = await this.paymentsService.create(createPaymentDto);
-      this.logger.info(
-        { paymentId: payment.id, orderId: savedOrder.id },
-        'Payment record created',
-      );
-
-      // Create Invoice
-      const invoice = await this.invoicesService.createFromOrder(savedOrder.id);
-      this.logger.info(
-        { invoiceId: invoice.id, orderId: savedOrder.id },
-        'Invoice created',
-      );
-
-      return savedOrder;
-    } catch (error: any) {
-      this.logger.error(
-        { error: error.message, stack: error.stack },
-        'Order creation failed',
-      );
-      throw error;
+      if (
+        [
+          PaymentGatewayType.STRIPE,
+          PaymentGatewayType.PAYPAL,
+          PaymentGatewayType.RAZORPAY,
+        ].includes(payment_gateway_type)
+      ) {
+        const paymentIntent = await this.processPaymentIntent(
+          order,
+          this.setting,
+        );
+        order.payment_intent = paymentIntent;
+      }
+      return order;
+    } catch (error) {
+      return order;
     }
   }
-
-  // async create(createOrderDto: CreateOrderDto) {
-  //   // Use a database transaction to ensure all operations succeed or fail together
-  //   const queryRunner = this.dataSource.createQueryRunner();
-  //   await queryRunner.connect();
-  //   await queryRunner.startTransaction();
-
-  //   try {
-  //     // 1. Validate customer
-  //     const customer = await this.userRepository.findOne({
-  //       where: { id: createOrderDto.customer_id },
-  //     });
-
-  //     if (!customer) {
-  //       this.logger.warn(
-  //         { customerId: createOrderDto.customer_id },
-  //         'Customer assign failed: not found',
-  //       );
-  //       throw new NotFoundException(
-  //         `Customer with id "${createOrderDto.customer_id}" not found`,
-  //       );
-  //     }
-
-  //     // 2. Create order
-  //     const order = new Order();
-  //     order.tracking_number = uuidv4();
-  //     order.customer = { id: createOrderDto.customer_id } as any;
-  //     order.customer_contact = createOrderDto.customer_contact;
-  //     order.customer_name = createOrderDto.customer_name;
-  //     order.amount = createOrderDto.amount;
-  //     order.paid_total = createOrderDto.amount;
-  //     order.total = createOrderDto.amount;
-  //     order.order_status = OrderStatus.COMPLETED;
-  //     // order.payment_status = PaymentStatus.SUCCESS; // todo -> fix PaymentStatus enums conflict
-
-  //     // 3. Create order items
-  //     order.items = await Promise.all(
-  //       createOrderDto.products.map(async (product) => {
-  //         const productData = await this.productRepository.findOne({
-  //           where: { id: product.product_id },
-  //         });
-  //         this.logger.debug(
-  //           { productId: productData?.id },
-  //           'Product fetch from database',
-  //         );
-
-  //         if (!productData) {
-  //           this.logger.warn(
-  //             { productId: product.product_id },
-  //             'Product assign failed: not found',
-  //           );
-  //           throw new NotFoundException(
-  //             `Product with id "${product.product_id}" not found`,
-  //           );
-  //         }
-
-  //         // Check stock availability
-  //         if (productData.quantity < product.order_quantity) {
-  //           throw new BadRequestException(
-  //             `Insufficient stock for product "${productData.name}". Available: ${productData.quantity}, Requested: ${product.order_quantity}`,
-  //           );
-  //         }
-
-  //         const item = new OrderItem();
-  //         item.product_id = product.product_id;
-  //         item.product_name = productData.name;
-  //         item.order_quantity = product.order_quantity;
-  //         item.unit_price = productData.price;
-  //         item.subtotal = productData.price * product.order_quantity;
-
-  //         // Reduce product quantity
-  //         productData.quantity -= product.order_quantity;
-  //         await this.productRepository.save(productData);
-
-  //         this.logger.debug({ orderItem: item?.id }, 'Order item created');
-  //         return item;
-  //       }),
-  //     );
-
-  //     // 4. Save order
-  //     const savedOrder = await this.orderRepository.save(order);
-  //     this.logger.info({ orderId: savedOrder.id }, 'Order created');
-
-  //     // 5. Create payment record
-  //     const createPaymentDto = {
-  //       order_id: savedOrder.id,
-  //       amount: order.amount,
-  //       tax_amount: order.sales_tax || 0,
-  //       shipping_cost: order.delivery_fee || 0,
-  //       discount_amount: order.discount || 0,
-  //       net_amount: order.total,
-  //       payment_method:
-  //         createOrderDto.payment_method || PaymentMethod.CREDIT_CARD,
-  //       payment_gateway: createOrderDto.payment_gateway,
-  //       gateway_transaction_id: createOrderDto.gateway_transaction_id,
-  //       status: PaymentStatus.PENDING,
-  //       status_message: 'Payment initialized',
-  //       customer_email: customer.email,
-  //       customer_phone: createOrderDto.customer_contact,
-  //     };
-
-  //     const payment = await this.paymentsService.create(createPaymentDto);
-  //     this.logger.info(
-  //       { paymentId: payment.id, orderId: savedOrder.id },
-  //       'Payment record created',
-  //     );
-
-  //     // 6. Process payment (if payment method and gateway details are provided)
-  //     // let processedPayment = payment;
-  //     // if (createOrderDto.process_payment !== false) {
-  //     //   try {
-  //     //     processedPayment = await this.paymentsService.processPayment({
-  //     //       payment_id: payment.id,
-  //     //       card_details: createOrderDto.card_details,
-  //     //     });
-
-  //     //     // Update order payment status based on payment result
-  //     //     if (processedPayment.status === PaymentStatus.COMPLETED) {
-  //     //       savedOrder.payment_status = PaymentStatus.COMPLETED;
-  //     //       savedOrder.order_status = OrderStatus.COMPLETED;
-  //     //     } else if (processedPayment.status === PaymentStatus.FAILED) {
-  //     //       savedOrder.payment_status = PaymentStatus.FAILED;
-  //     //       savedOrder.order_status = OrderStatus.FAILED;
-  //     //     }
-
-  //     //     await queryRunner.manager.save(Order, savedOrder);
-  //     //   } catch (error) {
-  //     //     this.logger.error(
-  //     //       { error: error.message, orderId: savedOrder.id },
-  //     //       'Payment processing failed',
-  //     //     );
-  //     //     // Payment failed but order and payment record were created
-  //     //     // We continue to create invoice with ISSUED status
-  //     //     throw error; // Re-throw to rollback transaction
-  //     //   }
-  //     // }
-
-  //     // 7. Create invoice
-  //     const invoice = await this.invoicesService.createFromOrder(
-  //       savedOrder.id,
-  //       // processedPayment.status === PaymentStatus.COMPLETED,
-  //     );
-  //     this.logger.info(
-  //       { invoiceId: invoice.id, orderId: savedOrder.id },
-  //       'Invoice created',
-  //     );
-  //     // try {
-  //     //   // Use a flag to process payment with the invoice
-  //     //   const invoice = await this.invoicesService.createFromOrder(
-  //     //     savedOrder.id,
-  //     //     // processedPayment.status === PaymentStatus.COMPLETED,
-  //     //   );
-  //     //   this.logger.info(
-  //     //     { invoiceId: invoice.id, orderId: savedOrder.id },
-  //     //     'Invoice created',
-  //     //   );
-
-  //     //   // 8. Commit transaction
-  //     //   await queryRunner.commitTransaction();
-
-  //     //   // 9. Return complete order data
-  //     //   return {
-  //     //     order: savedOrder,
-  //     //     // payment: processedPayment,
-  //     //     invoice: invoice,
-  //     //   };
-  //     // } catch (error: any) {
-  //     //   this.logger.error(
-  //     //     { error: error.message, orderId: savedOrder.id },
-  //     //     'Invoice creation failed',
-  //     //   );
-  //     //   throw new InternalServerErrorException('Failed to create invoice');
-  //     // }
-  //   } catch (error) {
-  //     // Rollback transaction on error
-  //     await queryRunner.rollbackTransaction();
-  //     // this.logger.error(
-  //     //   { error: error.message, stack: error.stack },
-  //     //   'Order creation failed',
-  //     // );
-  //     throw error;
-  //   } finally {
-  //     // Release query runner
-  //     await queryRunner.release();
-  //   }
-  // }
 
   async getOrders({
-    limit = 30,
-    page = 1,
+    limit,
+    page,
+    customer_id,
+    tracking_number,
     search,
-    orderBy,
-    sortedBy,
-  }: GetOrdersDto) {
-    const skip = (page - 1) * limit;
+    shop_id,
+  }: GetOrdersDto): Promise<OrderPaginator> {
+    if (!page) page = 1;
+    if (!limit) limit = 15;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
 
-    const query = this.orderRepository
-      .createQueryBuilder('order')
-      .leftJoinAndSelect('order.customer', 'customer');
+    let data: Order[] = this.orders;
 
-    // SAFE SORTING
-    const allowedOrderByFields = ['created_at', 'total', 'customer_name'];
-
-    const safeOrderBy = allowedOrderByFields.includes(orderBy)
-      ? orderBy
-      : 'created_at';
-
-    const safeSortedBy = sortedBy?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-
-    query.orderBy(`order.${safeOrderBy}`, safeSortedBy);
-
-    // SEARCH
-    if (search) {
-      const parseSearchParams = search.split(';');
-
-      const allowedOrderFields = ['tracking_number'];
-
-      for (const param of parseSearchParams) {
-        const [key, value] = param.split(':');
-        if (!key || !value) continue;
-
-        const paramKey = key.replace('.', '_');
-
-        if (allowedOrderFields.includes(key)) {
-          query.andWhere(`order.${key} ILIKE :${paramKey}`, {
-            [paramKey]: `%${value}%`,
-          });
-        }
-      }
+    if (shop_id && shop_id !== 'undefined') {
+      data = this.orders?.filter((p) => p?.shop?.id === Number(shop_id));
     }
-
-    const [data, total] = await query.skip(skip).take(limit).getManyAndCount();
-
-    const url = `/orders?search=${search ?? ''}&limit=${limit}`;
-
+    const results = data.slice(startIndex, endIndex);
+    const url = `/orders?search=${search}&limit=${limit}`;
     return {
-      data,
-      ...paginate(total, page, limit, data.length, url),
+      data: results,
+      ...paginate(data.length, page, limit, results.length, url),
     };
   }
 
-  async findOne(id: number) {
-    const order = await this.orderRepository.findOne({
-      where: { id },
-      relations: {
-        customer: true,
-        items: true,
-      },
+  async getOrderByIdOrTrackingNumber(id: number): Promise<Order> {
+    try {
+      return (
+        this.orders.find(
+          (o: Order) =>
+            o.id === Number(id) || o.tracking_number === id.toString(),
+        ) ?? this.orders[0]
+      );
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  getOrderStatuses({
+    limit,
+    page,
+    search,
+    orderBy,
+  }: GetOrderStatusesDto): OrderStatusPaginator {
+    if (!page) page = 1;
+    if (!limit) limit = 30;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    let data: OrderStatus[] = this.orderStatus;
+
+    // if (shop_id) {
+    //   data = this.orders?.filter((p) => p?.shop?.id === shop_id);
+    // }
+
+    if (search) {
+      const parseSearchParams = search.split(';');
+      const searchText: any = [];
+      for (const searchParam of parseSearchParams) {
+        const [key, value] = searchParam.split(':');
+        // TODO: Temp Solution
+        if (key !== 'slug') {
+          searchText.push({
+            [key]: value,
+          });
+        }
+      }
+
+      data = fuse
+        .search({
+          $and: searchText,
+        })
+        ?.map(({ item }) => item);
+    }
+
+    const results = data.slice(startIndex, endIndex);
+    const url = `/order-status?search=${search}&limit=${limit}`;
+
+    return {
+      data: results,
+      ...paginate(data.length, page, limit, results.length, url),
+    };
+  }
+
+  getOrderStatus(param: string, language: string) {
+    return this.orderStatus.find((p) => p.slug === param);
+  }
+
+  update(id: number, updateOrderInput: UpdateOrderDto) {
+    return this.orders[0];
+  }
+
+  remove(id: number) {
+    return `This action removes a #${id} order`;
+  }
+
+  verifyCheckout(input: CheckoutVerificationDto): VerifiedCheckoutData {
+    return {
+      total_tax: 0,
+      shipping_charge: 0,
+      unavailable_products: [],
+      wallet_currency: 0,
+      wallet_amount: 0,
+    };
+  }
+
+  createOrderStatus(createOrderStatusInput: CreateOrderStatusDto) {
+    return this.orderStatus[0];
+  }
+
+  updateOrderStatus(updateOrderStatusInput: UpdateOrderStatusDto) {
+    return this.orderStatus[0];
+  }
+
+  async getOrderFileItems({ page, limit }: GetOrderFilesDto) {
+    if (!page) page = 1;
+    if (!limit) limit = 30;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+
+    const results = orderFiles.slice(startIndex, endIndex);
+
+    const url = `/downloads?&limit=${limit}`;
+    return {
+      data: results,
+      ...paginate(orderFiles.length, page, limit, results.length, url),
+    };
+  }
+
+  async getDigitalFileDownloadUrl(digitalFileId: number) {
+    const item: OrderFiles = this.orderFiles.find(
+      (singleItem) => singleItem.digital_file_id === digitalFileId,
+    );
+
+    return item.file.url;
+  }
+
+  async exportOrder(shop_id: string) {
+    return exportOrderJson.url;
+  }
+
+  async downloadInvoiceUrl(shop_id: string) {
+    return orderInvoiceJson[0].url;
+  }
+
+  /**
+   * helper methods from here
+   */
+
+  /**
+   * this method will process children of Order Object
+   * @param order
+   * @returns Children[]
+   */
+  processChildrenOrder(order: Order) {
+    return [...order.children].map((child) => {
+      child.order_status = order.order_status;
+      child.payment_status = order.payment_status;
+      return child;
     });
-
-    if (!order) {
-      this.logger.warn({ orderId: id }, 'Order not found');
-      throw new NotFoundException(`Order with id "${id}" not found`);
+  }
+  /**
+   * This action will return Payment Intent
+   * @param order
+   * @param setting
+   */
+  async processPaymentIntent(
+    order: Order,
+    setting: Setting,
+  ): Promise<PaymentIntent> {
+    const paymentIntent = paymentIntents.find(
+      (intent: PaymentIntent) =>
+        intent.tracking_number === order.tracking_number &&
+        intent.payment_gateway.toString().toLowerCase() ===
+          setting.options.paymentGateway.toString().toLowerCase(),
+    );
+    if (paymentIntent) {
+      return paymentIntent;
     }
+    const {
+      id: payment_id,
+      client_secret = null,
+      redirect_url = null,
+      customer = null,
+    } = await this.savePaymentIntent(order, order.payment_gateway);
+    const is_redirect = redirect_url ? true : false;
+    const paymentIntentInfo: PaymentIntent = {
+      id: Number(Date.now()),
+      order_id: order.id,
+      tracking_number: order.tracking_number,
+      payment_gateway: order.payment_gateway.toString().toLowerCase(),
+      payment_intent_info: {
+        client_secret,
+        payment_id,
+        redirect_url,
+        is_redirect,
+      },
+    };
 
-    return order;
+    /**
+     * Commented below code will work for real database.
+     * if you uncomment this for json will arise conflict.
+     */
+
+    // paymentIntents.push(paymentIntentInfo);
+    // const paymentGateway: PaymentGateWay = {
+    //   id: Number(Date.now()),
+    //   user_id: this.authService.me().id,
+    //   customer_id: customer,
+    //   gateway_name: setting.options.paymentGateway,
+    //   created_at: new Date(),
+    //   updated_at: new Date(),
+    // };
+    // paymentGateways.push(paymentGateway);
+
+    return paymentIntentInfo;
   }
 
-  async update(id: number, updateOrderDto: UpdateOrderDto) {
-    const order = await this.orderRepository.findOneBy({ id });
+  /**
+   * Trailing method of ProcessPaymentIntent Method
+   *
+   * @param order
+   * @param paymentGateway
+   */
+  async savePaymentIntent(order: Order, paymentGateway?: string): Promise<any> {
+    const me = this.authService.me();
+    switch (order.payment_gateway) {
+      case PaymentGatewayType.STRIPE:
+        const paymentIntentParam =
+          await this.stripeService.makePaymentIntentParam(order, me);
+        return await this.stripeService.createPaymentIntent(paymentIntentParam);
+      case PaymentGatewayType.PAYPAL:
+        // here goes PayPal
+        return this.paypalService.createPaymentIntent(order);
+        break;
 
-    if (!order) {
-      this.logger.warn({ orderId: id }, 'Order update failed: not found');
-      throw new NotFoundException(`Order with id "${id}" not found`);
+      default:
+        //
+        break;
     }
-
-    order.order_status = updateOrderDto.order_status;
-
-    const updated = await this.orderRepository.save(order);
-    this.logger.info({ orderId: id }, 'Order updated');
-    return updated;
   }
 
-  async remove(id: number) {
-    const order = await this.orderRepository.findOneBy({ id });
-    if (!order) {
-      this.logger.warn({ orderId: id }, 'Order delete failed: not found');
-      throw new NotFoundException(`Order with id "${id}" not found`);
-    }
-    await this.orderRepository.delete(id);
-    this.logger.info({ orderId: id }, 'Order deleted');
+  /**
+   *  Route {order/payment} Submit Payment intent here
+   * @param order
+   * @param orderPaymentDto
+   */
+  async stripePay(order: Order) {
+    this.orders[0]['order_status'] = OrderStatusType.PROCESSING;
+    this.orders[0]['payment_status'] = PaymentStatusType.SUCCESS;
+    this.orders[0]['payment_intent'] = null;
   }
 
-  async verify(verifyOrderDto: any) {
-    return verifyOrderDto;
+  async paypalPay(order: Order) {
+    this.orders[0]['order_status'] = OrderStatusType.PROCESSING;
+    this.orders[0]['payment_status'] = PaymentStatusType.SUCCESS;
+    const { status } = await this.paypalService.verifyOrder(
+      order.payment_intent.payment_intent_info.payment_id,
+    );
+    this.orders[0]['payment_intent'] = null;
+    if (status === 'COMPLETED') {
+      //console.log('payment Success');
+    }
+  }
+
+  /**
+   * This method will set order status and payment status
+   * @param orderStatus
+   * @param paymentStatus
+   */
+  changeOrderPaymentStatus(
+    orderStatus: OrderStatusType,
+    paymentStatus: PaymentStatusType,
+  ) {
+    this.orders[0]['order_status'] = orderStatus;
+    this.orders[0]['payment_status'] = paymentStatus;
   }
 }

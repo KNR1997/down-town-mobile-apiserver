@@ -1,32 +1,20 @@
-import { CoreEntity } from 'src/common/entities/core.entity';
-import { Type } from 'src/types/entities/type.entity';
-import { Column, Entity, ManyToOne } from 'typeorm';
+import { CoreEntity } from '../../common/entities/core.entity';
+import { Attachment } from '../../common/entities/attachment.entity';
+import { ShopSocials } from '../../settings/entities/setting.entity';
+import { Type } from '../../types/entities/type.entity';
 
-@Entity()
 export class Manufacturer extends CoreEntity {
-  @Column()
-  name: string;
-
-  @Column()
-  slug: string;
-
-  @Column({ default: true })
-  is_approved?: boolean;
-
-  @Column({ nullable: true })
+  cover_image?: Attachment;
   description?: string;
-
-  @Column({ nullable: true })
+  image?: Attachment;
+  is_approved?: boolean;
+  name: string;
+  products_count?: number;
+  slug?: string;
+  socials?: ShopSocials;
+  type: Type;
+  type_id?: string;
   website?: string;
-
-  @ManyToOne(() => Type, (type) => type.categories, {
-    onDelete: 'CASCADE',
-  })
-  type?: Type;
-
-  @Column()
-  language: string;
-
-  @Column('simple-json', { default: ['en'] })
+  language?: string;
   translated_languages?: string[];
 }

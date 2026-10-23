@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { plainToClass } from 'class-transformer';
 import { CreateSettingDto } from './dto/create-setting.dto';
 import { UpdateSettingDto } from './dto/update-setting.dto';
-import settingsJson from '@db/settings.json';
-import { plainToClass } from 'class-transformer';
 import { Setting } from './entities/setting.entity';
+import settingsJson from '@db/settings.json';
 
 const settings = plainToClass(Setting, settingsJson);
 
@@ -12,7 +12,7 @@ export class SettingsService {
   private settings: Setting = settings;
 
   create(createSettingDto: CreateSettingDto) {
-    return 'This action adds a new setting';
+    return this.settings;
   }
 
   findAll() {
@@ -24,7 +24,7 @@ export class SettingsService {
   }
 
   update(id: number, updateSettingDto: UpdateSettingDto) {
-    return `This action updates a #${id} setting`;
+    return this.settings;
   }
 
   remove(id: number) {

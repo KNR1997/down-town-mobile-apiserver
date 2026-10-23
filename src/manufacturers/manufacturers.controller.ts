@@ -1,138 +1,68 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Param,
+  Controller,
   Delete,
-  Query,
+  Get,
+  Param,
+  Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { ManufacturersService } from './manufacturers.service';
-import { CreateManufacturerDto } from './dto/create-manufacturer.dto';
-import { UpdateManufacturerDto } from './dto/update-manufacturer.dto';
-import { plainToInstance } from 'class-transformer';
+import { GetTopManufacturersDto } from './dto/get-top-manufacturers.dto';
+import { Manufacturer } from './entities/manufacturer.entity';
 import {
   GetManufacturersDto,
   ManufacturerPaginator,
-  ManufacturerResponseDto,
 } from './dto/get-manufactures.dto';
-import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
-import {
-  ApiBadRequestResponse,
-  ApiConflictResponse,
-  ApiNotFoundResponse,
-  ApiOkResponse,
-  ApiOperation,
-} from '@nestjs/swagger';
+import { CreateManufacturerDto } from './dto/create-manufacturer.dto';
+import { UpdateManufacturerDto } from './dto/update-manufacturer.dto';
 
 @Controller('manufacturers')
 export class ManufacturersController {
   constructor(private readonly manufacturersService: ManufacturersService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new manufacturer' })
-  @ApiOkResponse({ type: CreateManufacturerDto })
-  @ApiConflictResponse({
-    description: 'Manufacturer with this slug already exists.',
-  })
-  @ApiBadRequestResponse({ description: 'Invalid data provided.' })
-  async create(@Body() createDto: CreateManufacturerDto) {
-    const manufacturer = await this.manufacturersService.create(createDto);
-
-    const data = plainToInstance(ManufacturerResponseDto, manufacturer, {
-      excludeExtraneousValues: true,
-    });
-
-    return new SuccessResponseDto<ManufacturerResponseDto>({
-      message: 'Manufacturer created successfully',
-      statusCode: 201,
-      data,
-    });
+  createProduct(@Body() createManufactureDto: CreateManufacturerDto) {
+    return this.manufacturersService.create(createManufactureDto);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get paginated categories' })
-  @ApiOkResponse({
-    description: 'List of categories retrieved successfully.',
-    type: ManufacturerPaginator,
-  })
-  async getManufacturers(@Query() query: GetManufacturersDto) {
-    const result = await this.manufacturersService.getManufacturers(query);
-
-    const data = plainToInstance(ManufacturerResponseDto, result.data, {
-      excludeExtraneousValues: true,
-    });
-
-    return new SuccessResponseDto({
-      message: 'Get Manufacturers successfully',
-      statusCode: 200,
-      data: {
-        ...result,
-        data,
-      },
-    });
+  async getManufactures(
+    @Query() query: GetManufacturersDto,
+  ): Promise<ManufacturerPaginator> {
+    return this.manufacturersService.getManufactures(query);
   }
 
   @Get(':slug')
-  @ApiOperation({ summary: 'Get manufacturer by slug' })
-  @ApiOkResponse({
-    description: 'Get manufacturer by slug successful.',
-    type: ManufacturerResponseDto,
-  })
-  @ApiNotFoundResponse({
-    description: 'Manufacturer with slug not found.',
-  })
-  async findManufacturerBySlug(@Param('slug') slug: string) {
-    const manufacturer =
-      await this.manufacturersService.getManufacturerBySlug(slug);
-
-    const data = plainToInstance(ManufacturerResponseDto, manufacturer, {
-      excludeExtraneousValues: true,
-    });
-
-    return new SuccessResponseDto<ManufacturerResponseDto>({
-      message: 'Get manufacturer by slug successful.',
-      statusCode: 200,
-      data,
-    });
+  async getManufactureBySlug(
+    @Param('slug') slug: string,
+  ): Promise<Manufacturer> {
+    return this.manufacturersService.getManufacturesBySlug(slug);
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Update a Manufacturer' })
-  @ApiOkResponse({
-    description: 'Manufacturer updated successfully.',
-    type: ManufacturerResponseDto,
-  })
-  @ApiNotFoundResponse({
-    description: 'Manufacturer with id not found.',
-  })
-  async update(
+  update(
     @Param('id') id: string,
-    @Body() updateDto: UpdateManufacturerDto,
+    @Body() updateManufacturerDto: UpdateManufacturerDto,
   ) {
-    const manufacturer = await this.manufacturersService.update(+id, updateDto);
-
-    const data = plainToInstance(ManufacturerResponseDto, manufacturer, {
-      excludeExtraneousValues: true,
-    });
-
-    return new SuccessResponseDto<ManufacturerResponseDto>({
-      message: 'Manufacturer updated successfully',
-      statusCode: 200,
-      data,
-    });
+    return this.manufacturersService.update(+id, updateManufacturerDto);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete a Manufacturer by id' })
-  @ApiOkResponse({
-    description: 'Manufacturer deleted successfully.',
-  })
-  @ApiNotFoundResponse({
-    description: 'Manufacturer with id not found.',
-  })
-  async remove(@Param('id') id: string) {
+  remove(@Param('id') id: string) {
     return this.manufacturersService.remove(+id);
+  }
+}
+
+@Controller('top-manufacturers')
+export class TopManufacturersController {
+  constructor(private readonly manufacturersService: ManufacturersService) {}
+
+  @Get()
+  async getTopManufactures(
+    @Query() query: GetTopManufacturersDto,
+  ): Promise<Manufacturer[]> {
+    return this.manufacturersService.getTopManufactures(query);
   }
 }

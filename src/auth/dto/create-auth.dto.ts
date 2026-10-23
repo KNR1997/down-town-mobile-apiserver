@@ -1,8 +1,5 @@
-import { ApiProperty, PickType } from '@nestjs/swagger';
-import { Expose, Type } from 'class-transformer';
-import { IsArray, IsEmail, IsString } from 'class-validator';
-import { ShopResponseDto } from 'src/shops/dto/get-shops.dto';
-import { ProfileResponseDto } from 'src/users/dto/get-profile.dto';
+import { PartialType, PickType } from '@nestjs/swagger';
+import { CoreMutationOutput } from 'src/common/dto/core-mutation-output.dto';
 import { User } from 'src/users/entities/user.entity';
 
 enum Permission {
@@ -11,128 +8,61 @@ enum Permission {
   STAFF = 'Staff',
   CUSTOMER = 'Customer',
 }
+export class RegisterDto extends PickType(User, ['name', 'email', 'password']) {
+  permission: Permission = Permission.CUSTOMER;
+}
 
-export class RegisterDto {
-  @ApiProperty({
-    description: 'The name of the user',
-    example: 'John Doe',
-  })
-  @IsString()
-  name: string;
+export class LoginDto extends PartialType(
+  PickType(User, ['email', 'password']),
+) {}
 
-  @ApiProperty({
-    description: 'The email of the user',
-    example: 'admin@demo.com',
-  })
-  @IsEmail()
+export class SocialLoginDto {
+  provider: string;
+  access_token: string;
+}
+export class ChangePasswordDto {
+  oldPassword: string;
+  newPassword: string;
+}
+export class ForgetPasswordDto {
   email: string;
-
-  @ApiProperty({
-    description: 'The password of the user',
-    example: 'demodemo',
-  })
-  @IsString()
+}
+export class VerifyForgetPasswordDto {
+  email: string;
+  token: string;
+}
+export class ResetPasswordDto {
+  email: string;
+  token: string;
   password: string;
 }
-
-export class RegisterResponseDto {
-  @ApiProperty({
-    description: 'Unique identifier',
-    example: 1,
-  })
-  @Expose()
-  id: number;
-
-  @ApiProperty({
-    description: 'The name of the user',
-    example: 'Alice',
-  })
-  @Expose()
-  name: string;
-
-  @ApiProperty({
-    description: 'The email of the user',
-    example: 'alice@gmail.com',
-  })
-  @Expose()
-  email: string;
-}
-
-export class CreateAuthDto {}
 
 export class AuthResponse {
   token: string;
   permissions: string[];
   role?: string;
 }
-
-export class LoginDto {
-  @ApiProperty({
-    description: 'The email of the user account',
-    example: 'admin@demo.com',
-  })
-  email: string;
-
-  @ApiProperty({
-    description: 'The password of the user account',
-    example: 'demodemo',
-  })
-  password: string;
+export class CoreResponse extends CoreMutationOutput {}
+export class VerifyOtpDto {
+  otp_id: string;
+  code: string;
+  phone_number: string;
 }
-
-export class LoginResponseDto {
-  @ApiProperty({
-    description: 'Access Token',
-    example:
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.Wu8CHmArWyjZW9tT5AMpPIFrPixmHcQSady2U0JheA',
-  })
-  @Expose()
-  token: string;
-
-  @ApiProperty({
-    description: 'The id of the login user',
-    example: '1',
-  })
-  @Expose()
-  userId: string;
-
-  @ApiProperty({
-    description: 'The username of the login user',
-    example: 'alice',
-  })
-  @Expose()
-  username: string;
+export class OtpResponse {
+  id: string;
+  message: string;
+  success: boolean;
+  phone_number: string;
+  provider: string;
+  is_contact_exist: boolean;
 }
-
-export class MeResponseDto {
-  @ApiProperty({
-    description: 'The id of the login user',
-    example: '1',
-  })
-  @Expose()
-  id: number;
-
-  @ApiProperty({
-    description: 'The name of the login user',
-    example: 'Alice',
-  })
-  @Expose()
-  name: string;
-
-  @ApiProperty({
-    description: 'The email of the login user',
-    example: 'alice@gmail.com',
-  })
-  @Expose()
-  email: string;
-
-  @ApiProperty({ type: ShopResponseDto, isArray: true })
-  @Expose()
-  @IsArray()
-  @Type(() => ShopResponseDto)
-  shops: ShopResponseDto[];
-
-  @Expose()
-  @Type(() => ProfileResponseDto)
-  profile: ProfileResponseDto;
+export class OtpDto {
+  phone_number: string;
+}
+export class OtpLoginDto {
+  otp_id: string;
+  code: string;
+  phone_number: string;
+  name?: string;
+  email?: string;
 }

@@ -1,11 +1,19 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { AnalyticsController } from './analytics.controller';
 import { AnalyticsService } from './analytics.service';
+import {
+  AnalyticsController,
+  CategoryWiseProductController,
+  LowStockProductsController,
+  TopRateProductController,
+} from './analytics.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([])],
-  controllers: [AnalyticsController],
+  controllers: [
+    AnalyticsController,
+    CategoryWiseProductController,
+    LowStockProductsController,
+    TopRateProductController,
+  ],
   providers: [AnalyticsService],
 })
 export class AnalyticsModule {}

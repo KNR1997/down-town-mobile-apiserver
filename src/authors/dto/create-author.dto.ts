@@ -1,58 +1,20 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { OmitType } from '@nestjs/swagger';
+import { Author } from '../entities/author.entity';
 
-export class CreateAuthorDto {
-  @ApiProperty({
-    description: 'The name of the author',
-    example: 'J.K.Amal',
-  })
-  @IsString()
-  name: string;
-
-  @ApiProperty({
-    description: 'The slug of the author',
-    example: 'grocery',
-  })
-  @IsString()
-  @IsOptional()
-  slug?: string;
-
-  @ApiProperty({
-    description: 'The quote of the author',
-    example: 'quote',
-  })
-  @IsString()
-  @IsOptional()
-  quote?: string;
-
-  @ApiProperty({
-    description: 'The bio of the author',
-    example: 'bio',
-  })
-  @IsString()
-  @IsOptional()
-  bio?: string;
-
-  @ApiProperty({
-    description: 'The born of the author',
-    example: 'grocery',
-  })
-  @IsString()
-  @IsOptional()
-  born?: string;
-
-  @ApiProperty({
-    description: 'The death of the author',
-    example: 'grocery',
-  })
-  @IsString()
-  @IsOptional()
-  death?: string;
-
-  @ApiProperty({
-    description: 'The language of the author',
-    example: 'en',
-  })
-  @IsString()
-  language: string;
+export class CreateAuthorDto extends OmitType(Author, [
+  'id',
+  'bio',
+  'born',
+  'cover_image',
+  'death',
+  'image',
+  'languages',
+  'name',
+  'products_count',
+  'quote',
+  'slug',
+  'socials',
+  'translated_languages',
+]) {
+  shop_id?: string;
 }

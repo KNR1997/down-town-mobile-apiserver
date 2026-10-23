@@ -1,16 +1,9 @@
-import {
-  PrimaryGeneratedColumn,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Type } from 'class-transformer';
 
-export abstract class CoreEntity {
-  @PrimaryGeneratedColumn()
-  id!: number;
-
-  @CreateDateColumn()
-  created_at!: Date;
-
-  @UpdateDateColumn()
-  updated_at!: Date;
+export class CoreEntity {
+  id: number;
+  @Type(() => Date)
+  created_at: Date;
+  @Type(() => Date)
+  updated_at: Date;
 }

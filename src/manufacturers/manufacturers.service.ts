@@ -1,104 +1,83 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { Manufacturer } from './entities/manufacturer.entity';
+import manufacturersJson from '@db/manufacturers.json';
+import { plainToClass } from 'class-transformer';
+import Fuse from 'fuse.js';
+import { GetTopManufacturersDto } from './dto/get-top-manufacturers.dto';
+import {
+  GetManufacturersDto,
+  ManufacturerPaginator,
+} from './dto/get-manufactures.dto';
+import { paginate } from '../common/pagination/paginate';
 import { CreateManufacturerDto } from './dto/create-manufacturer.dto';
 import { UpdateManufacturerDto } from './dto/update-manufacturer.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Manufacturer } from './entities/manufacturer.entity';
-import { EntityManager, Repository } from 'typeorm';
-import slugify from 'slugify';
-import { GetManufacturersDto } from './dto/get-manufactures.dto';
-import { paginate } from 'src/common/pagination/paginate';
+
+const manufacturers = plainToClass(Manufacturer, manufacturersJson);
+
+const options = {
+  keys: ['name'],
+  threshold: 0.3,
+};
+
+const fuse = new Fuse(manufacturers, options);
 
 @Injectable()
 export class ManufacturersService {
-  constructor(
-    @InjectRepository(Manufacturer)
-    private readonly manufacturersRepository: Repository<Manufacturer>,
-    private readonly entityManager: EntityManager,
-  ) {}
+  private manufacturers: Manufacturer[] = manufacturers;
 
-  async create(createDto: CreateManufacturerDto): Promise<Manufacturer> {
-    const manufacturer = new Manufacturer();
-
-    const slug = slugify(createDto.name, {
-      lower: true,
-      strict: true,
-      trim: true,
-    });
-
-    manufacturer.name = createDto.name;
-    manufacturer.slug = slug;
-    manufacturer.description = createDto.description;
-    manufacturer.language = createDto.language;
-    manufacturer.type = { id: createDto.type_id } as any;
-
-    return await this.entityManager.save(manufacturer);
+  create(createManufactureDto: CreateManufacturerDto) {
+    return this.manufacturers[0];
   }
 
-  async getManufacturers({
-    limit = 30,
-    page = 1,
+  async getManufactures({
+    limit,
+    page,
     search,
-  }: GetManufacturersDto) {
-    const skip = (page - 1) * limit;
-
-    const query =
-      this.manufacturersRepository.createQueryBuilder('manufacturer');
-
-    // Optional search
+  }: GetManufacturersDto): Promise<ManufacturerPaginator> {
+    if (!page) page = 1;
+    if (!limit) limit = 30;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    let data: Manufacturer[] = this.manufacturers;
     if (search) {
-      query.where('manufacturer.name LIKE :search', {
-        search: `%${search}%`,
-      });
+      console.log('search', search);
+      const parseSearchParams = search.split(';');
+      for (const searchParam of parseSearchParams) {
+        const [key, value] = searchParam.split(':');
+        data = fuse.search(value)?.map(({ item }) => item);
+      }
     }
 
-    const [data, total] = await query.skip(skip).take(limit).getManyAndCount();
-
-    const url = `/manufacturers?search=${search ?? ''}&limit=${limit}`;
-
+    const results = data.slice(startIndex, endIndex);
+    const url = `/manufacturers?search=${search}&limit=${limit}`;
     return {
-      data,
-      ...paginate(total, page, limit, data.length, url),
+      data: results,
+      ...paginate(data.length, page, limit, results.length, url),
     };
   }
 
-  async getManufacturerBySlug(slug: string): Promise<Manufacturer> {
-    const manufacturer = await this.manufacturersRepository.findOne({
-      where: { slug },
-      relations: {
-        type: true
-      },
-    });
+  async getTopManufactures({
+    limit = 10,
+  }: GetTopManufacturersDto): Promise<Manufacturer[]> {
+    return manufacturers.slice(0, limit);
+  }
 
-    if (!manufacturer) {
-      throw new NotFoundException(`Manufacturer with slug "${slug}" not found`);
-    }
+  async getManufacturesBySlug(slug: string): Promise<Manufacturer> {
+    return this.manufacturers.find(
+      (singleManufacture) => singleManufacture.slug === slug,
+    );
+  }
+
+  update(id: number, updateManufacturesDto: UpdateManufacturerDto) {
+    const manufacturer = this.manufacturers.find((p) => p.id === Number(id));
+
+    // Update author
+    manufacturer.is_approved = updateManufacturesDto.is_approved ?? true;
 
     return manufacturer;
   }
 
-  async update(
-    id: number,
-    updateDto: UpdateManufacturerDto,
-  ): Promise<Manufacturer> {
-    const manufacturer = await this.manufacturersRepository.findOneBy({ id });
-
-    if (!manufacturer) {
-      throw new NotFoundException(`Manufacturer with id "${id}" not found`);
-    }
-
-    manufacturer.name = updateDto.name;
-    manufacturer.slug = updateDto.slug;
-    manufacturer.description = updateDto.description;
-    manufacturer.type = { id: updateDto.type_id } as any;
-
-    return await this.entityManager.save(manufacturer);
-  }
-
-  async remove(id: number) {
-    const manufacturer = await this.manufacturersRepository.findOneBy({ id });
-    if (!manufacturer) {
-      throw new NotFoundException(`Manufacturer with id "${id}" not found`);
-    }
-    await this.manufacturersRepository.delete(id);
+  remove(id: number) {
+    return `This action removes a #${id} product`;
   }
 }

@@ -1,16 +1,6 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
-import { SettingsService } from './settings.service';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { CreateSettingDto } from './dto/create-setting.dto';
-import { UpdateSettingDto } from './dto/update-setting.dto';
-import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
+import { SettingsService } from './settings.service';
 
 @Controller('settings')
 export class SettingsController {
@@ -23,27 +13,6 @@ export class SettingsController {
 
   @Get()
   findAll() {
-    const data = this.settingsService.findAll();
-
-    return new SuccessResponseDto({
-      message: 'Settings retrieve successfully.',
-      statusCode: 200,
-      data,
-    });
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.settingsService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateSettingDto: UpdateSettingDto) {
-    return this.settingsService.update(+id, updateSettingDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.settingsService.remove(+id);
+    return this.settingsService.findAll();
   }
 }

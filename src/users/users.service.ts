@@ -1,361 +1,239 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { plainToClass } from 'class-transformer';
 import { CreateUserDto } from './dto/create-user.dto';
+import { GetUsersDto, UserPaginator } from './dto/get-users.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import Fuse from 'fuse.js';
 import { User } from './entities/user.entity';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { GetUsersDto } from './dto/get-users.dto';
+import usersJson from '@db/users.json';
 import { paginate } from 'src/common/pagination/paginate';
-import { Address } from './entities/address.entity';
-import { Profile } from './entities/profile.entity';
-import * as bcrypt from 'bcrypt';
-import { PinoLogger } from 'nestjs-pino';
-import { PermissionType, RoleType } from 'src/common/enums';
+
+const users = plainToClass(User, usersJson);
+
+const options = {
+  keys: ['name', 'type.slug', 'categories.slug', 'status'],
+  threshold: 0.3,
+};
+const fuse = new Fuse(users, options);
 
 @Injectable()
 export class UsersService {
-  constructor(
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
+  private users: User[] = users;
 
-    @InjectRepository(Address)
-    private addressRepository: Repository<Address>,
-
-    @InjectRepository(Profile)
-    private profileRepository: Repository<Profile>,
-
-    private readonly logger: PinoLogger,
-  ) {}
-
-  async findUserByEmail(email: string): Promise<User | null> {
-    return await this.userRepository.findOne({
-      where: { email },
-    });
-  }
-
-  async create({
-    name,
-    email,
-    password,
-    role,
-    permissions,
-  }: {
-    name: string;
-    email: string;
-    password: string;
-    role: RoleType;
-    permissions: PermissionType[];
-  }): Promise<User> {
-    const user = new User();
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    user.name = name;
-    user.email = email;
-    user.password = hashedPassword;
-    user.role = role;
-    user.permissions = permissions;
-
-    const createdUser = await this.userRepository.save(user);
-    this.logger.info(
-      { customerId: createdUser.id, email: createdUser.email },
-      'User created',
-    );
-
-    const profile = new Profile();
-
-    profile.user = { id: createdUser.id } as any;
-    const createdProfile = await this.profileRepository.save(profile);
-    this.logger.info({ profileId: createdProfile.id }, 'Profile created');
-
-    return createdUser;
+  create(createUserDto: CreateUserDto) {
+    return this.users[0];
   }
 
   async getUsers({
-    limit = 30,
-    page = 1,
+    text,
+    limit,
+    page,
     search,
-    orderBy,
-    sortedBy,
-  }: GetUsersDto) {
-    const skip = (page - 1) * limit;
-
-    const query = this.userRepository.createQueryBuilder('user');
-
-    // SAFE SORTING
-    const allowedOrderByFields = ['created_at', 'name', 'is_active'];
-
-    const safeOrderBy = allowedOrderByFields.includes(orderBy)
-      ? orderBy
-      : 'created_at';
-
-    const safeSortedBy = sortedBy?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-
-    query.orderBy(`user.${safeOrderBy}`, safeSortedBy);
+  }: GetUsersDto): Promise<UserPaginator> {
+    if (!page) page = 1;
+    if (!limit) limit = 30;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    let data: User[] = this.users;
+    if (text?.replace(/%/g, '')) {
+      data = fuse.search(text)?.map(({ item }) => item);
+    }
 
     if (search) {
       const parseSearchParams = search.split(';');
-
-      const allowedUserFields = ['name'];
-      const allowedProfileFields = ['contact'];
-
-      for (const param of parseSearchParams) {
-        const [key, value] = param.split(':');
-
-        if (!key || !value) continue;
-
-        const paramKey = key.replace('.', '_');
-
-        // User fields
-        if (allowedUserFields.includes(key)) {
-          query.andWhere(`user.${key} ILIKE :${paramKey}`, {
-            [paramKey]: `%${value}%`,
+      const searchText: any = [];
+      for (const searchParam of parseSearchParams) {
+        const [key, value] = searchParam.split(':');
+        // TODO: Temp Solution
+        if (key !== 'slug') {
+          searchText.push({
+            [key]: value,
           });
         }
-
-        // Profile fields
-        if (allowedProfileFields.includes(key)) {
-          if (allowedProfileFields.includes(key)) {
-            query.andWhere(`profile.${key} ILIKE :${paramKey}`, {
-              [paramKey]: `%${value}%`,
-            });
-          }
-        }
       }
+
+      data = fuse
+        .search({
+          $and: searchText,
+        })
+        ?.map(({ item }) => item);
     }
 
-    const [data, total] = await query.skip(skip).take(limit).getManyAndCount();
-
-    const url = `/products?search=${search ?? ''}&limit=${limit}`;
+    const results = data.slice(startIndex, endIndex);
+    const url = `/users?limit=${limit}`;
 
     return {
-      data,
-      ...paginate(total, page, limit, data.length, url),
+      data: results,
+      ...paginate(data.length, page, limit, results.length, url),
     };
   }
 
-  async getAdmins({ limit = 30, page = 1, search }: GetUsersDto) {
-    const skip = (page - 1) * limit;
-
-    const query = this.userRepository
-      .createQueryBuilder('user')
-      .where('user.role = :role', {
-        role: RoleType.SUPER_ADMIN,
-      });
-    // .where(':permission = ANY(user.permissions)', {
-    //   permission: PermissionType.SUPER_ADMIN,
-    // });
-
-    if (search) {
-      query.andWhere('(user.name ILIKE :search OR user.email ILIKE :search)', {
-        search: `%${search}%`,
-      });
-    }
-
-    const [data, total] = await query.skip(skip).take(limit).getManyAndCount();
-
-    const url = `/admin/list?search=${search ?? ''}&limit=${limit}`;
-
-    return {
-      data,
-      ...paginate(total, page, limit, data.length, url),
-    };
+  getUsersNotify({ limit }: GetUsersDto): User[] {
+    const data: any = this.users;
+    return data?.slice(0, limit);
   }
 
-  async getVendors({ limit = 30, page = 1, search }: GetUsersDto) {
-    const skip = (page - 1) * limit;
-
-    const query = this.userRepository
-      .createQueryBuilder('user')
-      .where('user.role = :role', {
-        role: RoleType.STORE_OWNER,
-      });
-    // .where(':permission = ANY(user.permissions)', {
-    //   permission: PermissionType.STORE_OWNER,
-    // });
-
-    if (search) {
-      query.andWhere('(user.name ILIKE :search OR user.email ILIKE :search)', {
-        search: `%${search}%`,
-      });
-    }
-
-    const [data, total] = await query.skip(skip).take(limit).getManyAndCount();
-
-    const url = `/vendors/list?search=${search ?? ''}&limit=${limit}`;
-
-    return {
-      data,
-      ...paginate(total, page, limit, data.length, url),
-    };
+  findOne(id: number) {
+    return this.users.find((user) => user.id === id);
   }
 
-  async getStaffs({ limit = 30, page = 1, search }: GetUsersDto) {
-    const skip = (page - 1) * limit;
-
-    const query = this.userRepository
-      .createQueryBuilder('user')
-      .where('user.role = :role', {
-        role: RoleType.STAFF,
-      });
-    // .where(':permission = ANY(user.permissions)', {
-    //   permission: PermissionType.STAFF,
-    // });
-
-    if (search) {
-      query.andWhere('(user.name ILIKE :search OR user.email ILIKE :search)', {
-        search: `%${search}%`,
-      });
-    }
-
-    const [data, total] = await query.skip(skip).take(limit).getManyAndCount();
-
-    const url = `/staff/list?search=${search ?? ''}&limit=${limit}`;
-
-    return {
-      data,
-      ...paginate(total, page, limit, data.length, url),
-    };
+  update(id: number, updateUserDto: UpdateUserDto) {
+    return this.users[0];
   }
 
-  async createStaff(createUserDto: CreateUserDto): Promise<User> {
-    const user = new User();
-
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-
-    user.name = createUserDto.name;
-    user.email = createUserDto.email;
-    user.role = RoleType.STAFF;
-    user.permissions = [PermissionType.STAFF];
-    user.password = hashedPassword;
-
-    const createdUser = await this.userRepository.save(user);
-
-    const profile = new Profile();
-
-    profile.user = { id: createdUser.id } as any;
-    this.profileRepository.save(profile);
-
-    return createdUser;
+  remove(id: number) {
+    return `This action removes a #${id} user`;
   }
 
-  async findOne(id: number) {
-    const user = await this.userRepository.findOne({
-      where: { id },
-      relations: {
-        addresses: true,
-        profile: true,
-      }
-    });
+  makeAdmin(user_id: string) {
+    return this.users.find((u) => u.id === Number(user_id));
+  }
 
-    if (!user) {
-      throw new NotFoundException(`User with id "${id}" not found`);
-    }
+  banUser(id: number) {
+    const user = this.users.find((u) => u.id === Number(id));
+
+    user.is_active = !user.is_active;
 
     return user;
   }
 
-  async update(id: number, updateDto: UpdateUserDto) {
-    const user = await this.userRepository.findOne({
-      where: { id },
-      relations: {
-        addresses: true,
-      }
+  activeUser(id: number) {
+    const user = this.users.find((u) => u.id === Number(id));
+
+    user.is_active = !user.is_active;
+
+    return user;
+  }
+
+  async getAdmin({
+    text,
+    limit,
+    page,
+    search,
+  }: GetUsersDto): Promise<UserPaginator> {
+    if (!page) page = 1;
+    if (!limit) limit = 30;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    let data: User[] = this.users.filter(function (element) {
+      return element.permissions.some(function (subElement) {
+        return subElement.name === 'super_admin';
+      });
     });
 
-    if (!user) {
-      throw new NotFoundException(`User with id "${id}" not found`);
+    if (text?.replace(/%/g, '')) {
+      data = fuse.search(text)?.map(({ item }) => item);
     }
+    const results = data.slice(startIndex, endIndex);
+    const url = `/admin/list?limit=${limit}`;
 
-    user.name = updateDto.name;
-    user.email = updateDto.email;
-
-    // Handle profile update/creation
-    if (updateDto.profile) {
-      if (user.profile) {
-        // Update existing profile
-        if (updateDto.profile.bio !== undefined)
-          user.profile.bio = updateDto.profile.bio;
-        // if (updateDto.profile.social !== undefined) user.profile.social = updateDto.profile.social;
-        if (updateDto.profile.contact !== undefined)
-          user.profile.contact = updateDto.profile.contact;
-
-        await this.profileRepository.save(user.profile);
-      } else {
-        // Create new profile
-        const profile = new Profile();
-        profile.user = { id: id } as any;
-        profile.bio = updateDto.profile.bio || '';
-        profile.social = '';
-        profile.contact = updateDto.profile.contact || '';
-
-        await this.profileRepository.save(profile);
-        user.profile = profile; // Assign to user object
-      }
-    }
-
-    if (updateDto.address) {
-      const updatedAddresses: Address[] = [];
-
-      for (const addr of updateDto.address) {
-        // UPDATE existing address
-        if (addr.id) {
-          const existing = await this.addressRepository.findOne({
-            where: { id: addr.id, user: { id } }, // ensure ownership
-          });
-
-          if (!existing) {
-            throw new NotFoundException(
-              `Address with id "${addr.id}" not found for this user`,
-            );
-          }
-
-          Object.assign(existing, addr);
-          updatedAddresses.push(existing);
-        } else {
-          // CREATE new address
-          const newAddress = this.addressRepository.create({
-            ...addr,
-            user,
-          });
-
-          updatedAddresses.push(newAddress);
-        }
-      }
-
-      await this.addressRepository.save(updatedAddresses);
-    }
-
-    return await this.userRepository.save(user);
+    return {
+      data: results,
+      ...paginate(data.length, page, limit, results.length, url),
+    };
   }
 
-  async remove(id: number) {
-    const user = await this.userRepository.findOneBy({ id });
-    if (!user) {
-      throw new NotFoundException(`User with id "${id}" not found`);
+  async getVendors({
+    text,
+    limit,
+    page,
+    search,
+  }: GetUsersDto): Promise<UserPaginator> {
+    if (!page) page = 1;
+    if (!limit) limit = 30;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    let data: User[] = this.users.filter(function (element) {
+      return element.permissions.some(function (subElement) {
+        return subElement.name === 'store_owner';
+      });
+    });
+
+    if (text?.replace(/%/g, '')) {
+      data = fuse.search(text)?.map(({ item }) => item);
     }
-    await this.userRepository.delete(id);
+    const results = data.slice(startIndex, endIndex);
+    const url = `/vendors/list?limit=${limit}`;
+
+    return {
+      data: results,
+      ...paginate(data.length, page, limit, results.length, url),
+    };
   }
 
-  async block(id: number) {
-    const user = await this.userRepository.findOneBy({ id });
-    if (!user) {
-      this.logger.warn({ userId: id }, 'User block failed: not found');
-      throw new NotFoundException(`User with id "${id}" not found`);
+  async getAllCustomers({
+    text,
+    limit,
+    page,
+    search,
+  }: GetUsersDto): Promise<UserPaginator> {
+    if (!page) page = 1;
+    if (!limit) limit = 30;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    let data: User[] = this.users.filter(function (element) {
+      return element.permissions.some(function (subElement) {
+        return subElement.name === 'customer';
+      });
+    });
+
+    if (text?.replace(/%/g, '')) {
+      data = fuse.search(text)?.map(({ item }) => item);
     }
-    user.is_active = false;
-    await this.userRepository.save(user);
-    this.logger.info({ userId: id }, 'User blocked');
+    const results = data.slice(startIndex, endIndex);
+    const url = `/customers/list?limit=${limit}`;
+
+    return {
+      data: results,
+      ...paginate(data.length, page, limit, results.length, url),
+    };
   }
 
-  async unblock(id: number) {
-    const user = await this.userRepository.findOneBy({ id });
-    if (!user) {
-      this.logger.warn({ userId: id }, 'User unblock failed: not found');
-      throw new NotFoundException(`User with id "${id}" not found`);
+  async getMyStaffs({
+    text,
+    limit,
+    page,
+    search,
+  }: GetUsersDto): Promise<UserPaginator> {
+    if (!page) page = 1;
+    if (!limit) limit = 30;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    let data: User[] = [];
+
+    if (text?.replace(/%/g, '')) {
+      data = fuse.search(text)?.map(({ item }) => item);
     }
-    user.is_active = true;
-    await this.userRepository.save(user);
-    this.logger.info({ userId: id }, 'User unblocked');
+    const results = data.slice(startIndex, endIndex);
+    const url = `/my-staffs/list?limit=${limit}`;
+
+    return {
+      data: results,
+      ...paginate(data.length, page, limit, results.length, url),
+    };
+  }
+
+  async getAllStaffs({
+    text,
+    limit,
+    page,
+    search,
+  }: GetUsersDto): Promise<UserPaginator> {
+    if (!page) page = 1;
+    if (!limit) limit = 30;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    let data: User[] = [];
+
+    if (text?.replace(/%/g, '')) {
+      data = fuse.search(text)?.map(({ item }) => item);
+    }
+    const results = data.slice(startIndex, endIndex);
+    const url = `/all-staffs/list?limit=${limit}`;
+
+    return {
+      data: results,
+      ...paginate(data.length, page, limit, results.length, url),
+    };
   }
 }

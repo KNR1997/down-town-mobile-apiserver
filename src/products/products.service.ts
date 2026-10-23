@@ -1,296 +1,193 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { plainToClass } from 'class-transformer';
 import { CreateProductDto } from './dto/create-product.dto';
+import { GetProductsDto, ProductPaginator } from './dto/get-products.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
-import { InjectRepository } from '@nestjs/typeorm';
-import { GetProductsDto } from './dto/get-products.dto';
 import { paginate } from 'src/common/pagination/paginate';
-import slugify from 'slugify';
-import { PinoLogger } from 'nestjs-pino';
+import productsJson from '@db/products.json';
+import popularProductsJson from '@db/popular-products.json';
+import bestSellingProductsJson from '@db/best-selling-products.json';
+import Fuse from 'fuse.js';
+import { GetPopularProductsDto } from './dto/get-popular-products.dto';
+import { GetBestSellingProductsDto } from './dto/get-best-selling-products.dto';
+
+const products = plainToClass(Product, productsJson);
+const popularProducts = plainToClass(Product, popularProductsJson);
+const bestSellingProducts = plainToClass(Product, bestSellingProductsJson);
+
+const options = {
+  keys: [
+    'name',
+    'type.slug',
+    'categories.slug',
+    'status',
+    'shop_id',
+    'author.slug',
+    'tags',
+    'manufacturer.slug',
+    'visibility',
+  ],
+  threshold: 0.3,
+};
+const fuse = new Fuse(products, options);
 
 @Injectable()
 export class ProductsService {
-  constructor(
-    @InjectRepository(Product)
-    private readonly productsRepository: Repository<Product>,
-    private readonly logger: PinoLogger,
-  ) {
-    this.logger.setContext(ProductsService.name);
+  private products: any = products;
+  private popularProducts: any = popularProducts;
+  private bestSellingProducts: any = bestSellingProducts;
+
+  create(createProductDto: CreateProductDto) {
+    return this.products[0];
   }
 
-  async create(createDto: CreateProductDto): Promise<Product> {
-    // Use provided slug or generate one from name
-    const slug =
-      createDto.slug ||
-      slugify(createDto.name, {
-        lower: true,
-        strict: true,
-        trim: true,
-      });
+  getProducts({ limit, page, search }: GetProductsDto): ProductPaginator {
+    if (!page) page = 1;
+    if (!limit) limit = 30;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    let data: Product[] = this.products;
 
-    // Check only after slug is determined
-    const exists = await this.productsRepository.exists({
-      where: { slug },
-    });
+    const parseSearchParams = search ? search.split(';') : [];
+    const exactFilters: { [key: string]: any } = {};
+    const fuzzyFilters: any[] = [];
 
-    if (exists) {
-      this.logger.warn(
-        { slug },
-        'Product creation failed: slug already exists',
-      );
-      throw new ConflictException(`Product with slug "${slug}" already exists`);
+    for (const searchParam of parseSearchParams) {
+      const [key, value] = searchParam.split(':');
+
+      if (key === 'shop_id') {
+        exactFilters.shop_id = parseInt(value, 10);
+      } else if (key !== 'slug') {
+        fuzzyFilters.push({ [key]: value });
+      }
+    }
+    if (exactFilters.shop_id) {
+      data = data.filter((product) => product.shop.id === exactFilters.shop_id);
     }
 
-    const product = new Product();
+    if (fuzzyFilters.length) {
+      data = fuse
+        .search({
+          $and: fuzzyFilters,
+        })
+        ?.map(({ item }) => item);
+    }
 
-    product.name = createDto.name;
-    product.slug = slug;
-    product.status = createDto.status;
-    product.sku = createDto.sku;
-    product.unit = createDto.unit;
-    product.description = createDto.description;
-    product.price = createDto.price;
-    product.quantity = createDto.quantity;
-    product.type = { id: createDto.type_id } as any;
-    product.shop = { id: createDto.shop_id } as any;
-    product.language = createDto.language;
+    const results = data.slice(startIndex, endIndex);
+    const url = `/products?search=${search}&limit=${limit}`;
+    return {
+      data: results,
+      ...paginate(data.length, page, limit, results.length, url),
+    };
+  }
 
-    // Many-to-many categories
-    product.categories =
-      createDto.categories?.map((id) => ({ id }) as any) ?? [];
+  getProductBySlug(slug: string): Product {
+    const product = this.products.find((p) => p.slug === slug);
+    const related_products = this.products
+      .filter((p) => p.type.slug === product.type.slug)
+      .slice(0, 20);
+    return {
+      ...product,
+      related_products,
+    };
+  }
 
-    const saved = await this.productsRepository.save(product);
-    this.logger.info(
-      { productId: saved.id, slug: saved.slug },
-      'Product created',
+  getPopularProducts({ limit, type_slug }: GetPopularProductsDto): Product[] {
+    let data: any = this.popularProducts;
+    if (type_slug) {
+      data = fuse.search(type_slug)?.map(({ item }) => item);
+    }
+    return data?.slice(0, limit);
+  }
+  getBestSellingProducts({
+    limit,
+    type_slug,
+  }: GetBestSellingProductsDto): Product[] {
+    let data: any = this.bestSellingProducts;
+    if (type_slug) {
+      data = fuse.search(type_slug)?.map(({ item }) => item);
+    }
+    return data?.slice(0, limit);
+  }
+
+  getProductsStock({ limit, page, search }: GetProductsDto): ProductPaginator {
+    if (!page) page = 1;
+    if (!limit) limit = 30;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    let data: Product[] = this.products.filter((item) => item.quantity <= 9);
+
+    if (search) {
+      const parseSearchParams = search.split(';');
+      const searchText: any = [];
+      for (const searchParam of parseSearchParams) {
+        const [key, value] = searchParam.split(':');
+        // TODO: Temp Solution
+        if (key !== 'slug') {
+          searchText.push({
+            [key]: value,
+          });
+        }
+      }
+
+      data = fuse
+        .search({
+          $and: searchText,
+        })
+        ?.map(({ item }) => item);
+    }
+
+    const results = data.slice(startIndex, endIndex);
+    const url = `/products-stock?search=${search}&limit=${limit}`;
+    return {
+      data: results,
+      ...paginate(data.length, page, limit, results.length, url),
+    };
+  }
+
+  getDraftProducts({ limit, page, search }: GetProductsDto): ProductPaginator {
+    if (!page) page = 1;
+    if (!limit) limit = 30;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    let data: Product[] = this.products.filter(
+      (item) => item.status === 'draft',
     );
-    return saved;
-  }
-
-  async getProducts({
-    limit = 30,
-    page = 1,
-    search,
-    orderBy,
-    sortedBy,
-  }: GetProductsDto) {
-    const skip = (page - 1) * limit;
-
-    const query = this.productsRepository.createQueryBuilder('product');
-
-    // SAFE SORTING
-    const allowedOrderByFields = ['created_at', 'name', 'price', 'quantity'];
-
-    const safeOrderBy = allowedOrderByFields.includes(orderBy)
-      ? orderBy
-      : 'created_at';
-
-    const safeSortedBy = sortedBy?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-
-    query.orderBy(`product.${safeOrderBy}`, safeSortedBy);
-
-    // SEARCH
-    if (search) {
-      const parseSearchParams = search.split(';');
-
-      const allowedProductFields = ['name', 'status'];
-
-      for (const param of parseSearchParams) {
-        const [key, value] = param.split(':');
-
-        if (!key || !value) continue;
-
-        const paramKey = key.replace('.', '_');
-
-        // RELATION FILTER (categories.slug)
-        if (key.includes('.')) {
-          const [relation, field] = key.split('.');
-
-          if (relation === 'categories') {
-            query.leftJoin('product.categories', 'categories');
-
-            query.andWhere(`categories.${field} = :${paramKey}`, {
-              [paramKey]: value,
-            });
-          }
-
-          continue;
-        }
-
-        // Product fields
-        if (key === 'status') {
-          query.andWhere(`product.status = :${paramKey}`, {
-            [paramKey]: value,
-          });
-        } else if (key === 'product_type') {
-          query.andWhere(`product.product_type = :${paramKey}`, {
-            [paramKey]: value,
-          });
-        } else if (allowedProductFields.includes(key)) {
-          query.andWhere(`product.${key} ILIKE :${paramKey}`, {
-            [paramKey]: `%${value}%`,
-          });
-        }
-      }
-    }
-    const [data, total] = await query.skip(skip).take(limit).getManyAndCount();
-
-    const url = `/products?search=${search ?? ''}&limit=${limit}`;
-
-    return {
-      data,
-      ...paginate(total, page, limit, data.length, url),
-    };
-  }
-
-  async getLowStockProducts({ limit = 30, page = 1, search }: GetProductsDto) {
-    const skip = (page - 1) * limit;
-
-    const query = this.productsRepository
-      .createQueryBuilder('product')
-      .where('product.quantity < :qty', { qty: 10 });
 
     if (search) {
       const parseSearchParams = search.split(';');
-
-      const allowedProductFields = ['name', 'status'];
-
-      for (const param of parseSearchParams) {
-        const [key, value] = param.split(':');
-
-        if (!key || !value) continue;
-
-        const paramKey = key.replace('.', '_');
-
-        // RELATION FILTER (categories.slug)
-        if (key.includes('.')) {
-          const [relation, field] = key.split('.');
-
-          if (relation === 'categories') {
-            query.leftJoin('product.categories', 'categories');
-
-            query.andWhere(`categories.${field} = :${paramKey}`, {
-              [paramKey]: value,
-            });
-          }
-
-          continue;
-        }
-
-        // Product fields
-        if (key === 'status') {
-          query.andWhere(`product.status = :${paramKey}`, {
-            [paramKey]: value,
-          });
-        } else if (key === 'product_type') {
-          query.andWhere(`product.product_type = :${paramKey}`, {
-            [paramKey]: value,
-          });
-        } else if (allowedProductFields.includes(key)) {
-          query.andWhere(`product.${key} ILIKE :${paramKey}`, {
-            [paramKey]: `%${value}%`,
+      const searchText: any = [];
+      for (const searchParam of parseSearchParams) {
+        const [key, value] = searchParam.split(':');
+        // TODO: Temp Solution
+        if (key !== 'slug') {
+          searchText.push({
+            [key]: value,
           });
         }
       }
+
+      data = fuse
+        .search({
+          $and: searchText,
+        })
+        ?.map(({ item }) => item);
     }
-    const [data, total] = await query.skip(skip).take(limit).getManyAndCount();
 
-    const url = `/products?search=${search ?? ''}&limit=${limit}`;
-
+    const results = data.slice(startIndex, endIndex);
+    const url = `/draft-products?search=${search}&limit=${limit}`;
     return {
-      data,
-      ...paginate(total, page, limit, data.length, url),
+      data: results,
+      ...paginate(data.length, page, limit, results.length, url),
     };
   }
 
-  async findOne(id: number) {
-    const product = await this.productsRepository.findOneBy({ id });
-
-    if (!product) {
-      this.logger.warn({ id }, 'Product not found');
-      throw new NotFoundException(`Product with id "${id}" not found`);
-    }
-
-    return product;
+  update(id: number, updateProductDto: UpdateProductDto) {
+    return this.products[0];
   }
 
-  async getProductBySlug(slug: string): Promise<Product> {
-    const product = await this.productsRepository.findOne({
-      where: { slug },
-      relations: {
-        type: true,
-        categories: true,
-      },
-    });
-
-    if (!product) {
-      this.logger.warn({ slug }, 'Product not found');
-      throw new NotFoundException(`Product with slug "${slug}" not found`);
-    }
-
-    return product;
-  }
-
-  async update(id: number, updateDto: UpdateProductDto): Promise<Product> {
-    const product = await this.productsRepository.findOneBy({ id });
-
-    if (!product) {
-      this.logger.warn({ productId: id }, 'Product update failed: not found');
-      throw new NotFoundException(`Product with id "${id}" not found`);
-    }
-
-    const slug = slugify(updateDto.name, {
-      lower: true,
-      strict: true,
-      trim: true,
-    });
-
-    product.name = updateDto.name;
-    product.slug = slug;
-    product.status = updateDto.status;
-    product.sku = updateDto.sku;
-    product.unit = updateDto.unit;
-    product.description = updateDto.description;
-    product.price = updateDto.price;
-    product.quantity = updateDto.quantity;
-    product.type = { id: updateDto.type_id } as any;
-    product.shop = { id: updateDto.shop_id } as any;
-    product.language = updateDto.language;
-
-    // Replace existing category relations
-    product.categories =
-      updateDto.categories?.map((id) => ({ id }) as any) ?? [];
-
-    const updated = await this.productsRepository.save(product);
-    this.logger.info({ productId: id }, 'Product updated');
-    return updated;
-  }
-
-  async decreaseQuantity(id: number, quantity: number): Promise<Product> {
-    const product = await this.productsRepository.findOneBy({ id });
-
-    if (!product) {
-      this.logger.warn({ productId: id }, 'Product update failed: not found');
-      throw new NotFoundException(`Product with id "${id}" not found`);
-    }
-
-    product.quantity -= quantity;
-    const updated = await this.productsRepository.save(product);
-    return updated;
-  }
-
-  async remove(id: number) {
-    const product = await this.productsRepository.findOneBy({ id });
-    if (!product) {
-      this.logger.warn({ productId: id }, 'Product delete failed: not found');
-      throw new NotFoundException(`Product with id "${id}" not found`);
-    }
-    await this.productsRepository.delete(id);
-    this.logger.info({ productId: id }, 'Product deleted');
+  remove(id: number) {
+    return `This action removes a #${id} product`;
   }
 }

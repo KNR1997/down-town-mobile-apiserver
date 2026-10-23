@@ -1,185 +1,70 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { plainToClass } from 'class-transformer';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { GetCategoriesDto } from './dto/get-categories.dto';
-import { Category } from './entities/category.entity';
 import { UpdateCategoryDto } from './dto/update-category.dto';
-import slugify from 'slugify';
-import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, Repository } from 'typeorm';
+import { Category } from './entities/category.entity';
+import Fuse from 'fuse.js';
+import categoriesJson from '@db/categories.json';
 import { paginate } from 'src/common/pagination/paginate';
+
+const categories = plainToClass(Category, categoriesJson);
+const options = {
+  keys: ['name', 'type.slug'],
+  threshold: 0.3,
+};
+const fuse = new Fuse(categories, options);
 
 @Injectable()
 export class CategoriesService {
-  constructor(
-    @InjectRepository(Category)
-    private readonly categoriesRepository: Repository<Category>,
-    private readonly entityManager: EntityManager,
-  ) {}
+  private categories: Category[] = categories;
 
-  async create(createDto: CreateCategoryDto): Promise<Category> {
-    // Use provided slug or generate one from name
-    const slug =
-      createDto.slug ||
-      slugify(createDto.name, {
-        lower: true,
-        strict: true,
-        trim: true,
-      });
-
-    // Check only after slug is determined
-    const exists = await this.categoriesRepository.exists({
-      where: { slug },
-    });
-
-    if (exists) {
-      throw new ConflictException(
-        `Category with slug "${slug}" already exists`,
-      );
-    }
-
-    const category = new Category();
-
-    category.name = createDto.name;
-    category.slug = slug;
-    category.icon = createDto.icon;
-    category.details = createDto.details;
-    category.language = createDto.language;
-    category.type = { id: createDto.type_id } as any;
-    category.parent = { id: createDto.parent } as any;
-
-    return await this.entityManager.save(category);
+  create(createCategoryDto: CreateCategoryDto) {
+    return this.categories[0];
   }
 
-  async getCategories({
-    limit = 30,
-    page = 1,
-    search,
-    orderBy,
-    sortedBy,
-  }: GetCategoriesDto) {
-    const skip = (page - 1) * limit;
-
-    const query = this.categoriesRepository
-      .createQueryBuilder('category')
-      .leftJoinAndSelect('category.type', 'type')
-      .leftJoinAndSelect('category.parent', 'parent')
-      .leftJoinAndSelect('category.children', 'children');
-
-    // SAFE SORTING
-    const allowedOrderByFields = ['created_at', 'name', 'slug'];
-
-    const safeOrderBy = allowedOrderByFields.includes(orderBy)
-      ? orderBy
-      : 'created_at';
-
-    const safeSortedBy = sortedBy?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-
-    query.orderBy(`category.${safeOrderBy}`, safeSortedBy);
-
-    // Optional search
+  getCategories({ limit, page, search, parent }: GetCategoriesDto) {
+    if (!page) page = 1;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    let data: Category[] = this.categories;
     if (search) {
       const parseSearchParams = search.split(';');
-
-      const allowedCategoryFields = ['name', 'slug', 'language'];
-      const allowedTypeFields = ['slug', 'name'];
-
-      for (const param of parseSearchParams) {
-        const [key, value] = param.split(':');
-
-        if (!key || !value) continue;
-
-        const paramKey = key.replace('.', '_');
-
-        // Category fields
-        if (allowedCategoryFields.includes(key)) {
-          query.andWhere(`category.${key} ILIKE :${paramKey}`, {
-            [paramKey]: `%${value}%`,
-          });
-        }
-
-        // Type relation fields
-        if (key.startsWith('type.')) {
-          const relationField = key.split('.')[1];
-
-          if (allowedTypeFields.includes(relationField)) {
-            query.andWhere(`type.${relationField} ILIKE :${paramKey}`, {
-              [paramKey]: `%${value}%`,
-            });
-          }
-        }
+      for (const searchParam of parseSearchParams) {
+        const [key, value] = searchParam.split(':');
+        // data = data.filter((item) => item[key] === value);
+        data = fuse.search(value)?.map(({ item }) => item);
       }
     }
+    if (parent === 'null') {
+      data = data.filter((item) => item.parent === null);
+    }
+    // if (text?.replace(/%/g, '')) {
+    //   data = fuse.search(text)?.map(({ item }) => item);
+    // }
+    // if (hasType) {
+    //   data = fuse.search(hasType)?.map(({ item }) => item);
+    // }
 
-    const [data, total] = await query.skip(skip).take(limit).getManyAndCount();
-
-    const url = `/products?search=${search ?? ''}&limit=${limit}`;
-
+    const results = data.slice(startIndex, endIndex);
+    const url = `/categories?search=${search}&limit=${limit}&parent=${parent}`;
     return {
-      data,
-      ...paginate(total, page, limit, data.length, url),
+      data: results,
+      ...paginate(data.length, page, limit, results.length, url),
     };
   }
 
-  async getCategoryBySlug(slug: string): Promise<Category> {
-    const category = await this.categoriesRepository.findOne({
-      where: { slug },
-      relations: {
-        type: true,
-        parent: true,
-      },
-    });
-
-    if (!category) {
-      throw new NotFoundException(`Category with slug "${slug}" not found`);
-    }
-
-    return category;
+  getCategory(param: string, language: string): Category {
+    return this.categories.find(
+      (p) => p.id === Number(param) || p.slug === param,
+    );
   }
 
-  async update(id: number, updateDto: UpdateCategoryDto): Promise<Category> {
-    const category = await this.categoriesRepository.findOneBy({ id });
-
-    if (!category) {
-      throw new NotFoundException(`Category with id "${id}" not found`);
-    }
-
-    const slug = slugify(updateDto.name, {
-      lower: true,
-      strict: true,
-      trim: true,
-    });
-
-    if (slug !== category.slug) {
-      const exists = await this.categoriesRepository.exists({
-        where: { slug },
-      });
-
-      if (exists) {
-        throw new ConflictException(
-          `Category with slug "${slug}" already exists`,
-        );
-      }
-    }
-
-    category.name = updateDto.name;
-    category.slug = slug;
-    category.icon = updateDto.icon;
-    category.details = updateDto.details;
-    category.type = { id: updateDto.type_id } as any;
-    category.parent = { id: updateDto.parent } as any;
-
-    return await this.entityManager.save(category);
+  update(id: number, updateCategoryDto: UpdateCategoryDto) {
+    return this.categories[0];
   }
 
-  async remove(id: number) {
-    const category = await this.categoriesRepository.findOneBy({ id });
-    if (!category) {
-      throw new NotFoundException(`Category with id "${id}" not found`);
-    }
-    await this.categoriesRepository.delete(id);
+  remove(id: number) {
+    return `This action removes a #${id} category`;
   }
 }

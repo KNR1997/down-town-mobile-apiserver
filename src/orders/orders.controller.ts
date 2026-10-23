@@ -1,173 +1,150 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Param,
+  Controller,
   Delete,
-  Query,
+  Get,
+  HttpCode,
+  Param,
+  ParseIntPipe,
+  Post,
   Put,
-  UsePipes,
-  ValidationPipe,
+  Query,
 } from '@nestjs/common';
-import { OrdersService } from './orders.service';
+import { CreateOrderStatusDto } from './dto/create-order-status.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { GetOrderFilesDto, OrderFilesPaginator } from './dto/get-downloads.dto';
+import { GetOrderStatusesDto } from './dto/get-order-statuses.dto';
+import { GetOrdersDto, OrderPaginator } from './dto/get-orders.dto';
+import { OrderPaymentDto } from './dto/order-payment.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
-import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
-import { plainToInstance } from 'class-transformer';
-import {
-  GetOrdersDto,
-  OrderResponseDto,
-} from './dto/get-order.dto';
-import {
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
-import { PinoLogger } from 'nestjs-pino';
+import { CheckoutVerificationDto } from './dto/verify-checkout.dto';
+import { Order } from './entities/order.entity';
+import { OrdersService } from './orders.service';
 
-@ApiTags('orders')
 @Controller('orders')
 export class OrdersController {
-  constructor(
-    private readonly ordersService: OrdersService,
-    private readonly logger: PinoLogger,
-  ) {}
+  constructor(private readonly ordersService: OrdersService) {}
 
-  @ApiOperation({ summary: 'Create order' })
-  @ApiResponse({
-    status: 201,
-    description: 'The order has been successfully created.',
-  })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
   @Post()
-  async createOrder(@Body() createOrderDto: CreateOrderDto) {
-    this.logger.debug('Create order request received');
-
-    const order = await this.ordersService.create(createOrderDto);
-
-    const data = plainToInstance(OrderResponseDto, order, {
-      excludeExtraneousValues: true,
-    });
-
-    return new SuccessResponseDto({
-      message: 'Order created successfully',
-      statusCode: 200,
-      data,
-    });
+  async create(@Body() createOrderDto: CreateOrderDto): Promise<Order> {
+    return this.ordersService.create(createOrderDto);
   }
 
-  @ApiOperation({ summary: 'Get paginated orders' })
-  @ApiResponse({ status: 200, description: 'Return all orders.' })
   @Get()
-  async getOrders(@Query() query: GetOrdersDto) {
-    this.logger.debug(
-      {
-        page: query.page,
-        limit: query.limit,
-        search: query.search,
-      },
-      'Get orders request received',
-    );
-
-    const result = await this.ordersService.getOrders(query);
-
-    const data = plainToInstance(OrderResponseDto, result.data, {
-      excludeExtraneousValues: true,
-    });
-
-    return new SuccessResponseDto({
-      message: 'Get orders successfully',
-      statusCode: 200,
-      data: {
-        ...result,
-        data,
-      },
-    });
+  async getOrders(@Query() query: GetOrdersDto): Promise<OrderPaginator> {
+    return this.ordersService.getOrders(query);
   }
 
-  @ApiOperation({ summary: 'Get order by id' })
-  @ApiResponse({ status: 200, description: 'Return order.' })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    this.logger.debug({ id }, 'Get order by id request received');
-
-    const order = await this.ordersService.findOne(+id);
-
-    const data = plainToInstance(OrderResponseDto, order, {
-      excludeExtraneousValues: true,
-    });
-
-    return new SuccessResponseDto<OrderResponseDto>({
-      message: 'Get order by id successful.',
-      statusCode: 200,
-      data,
-    });
+  getOrderById(@Param('id') id: number) {
+    return this.ordersService.getOrderByIdOrTrackingNumber(Number(id));
   }
 
-  @ApiOperation({ summary: 'Update a order' })
-  @ApiResponse({
-    status: 201,
-    description: 'The order has been successfully updated.',
-  })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  @Get('tracking-number/:tracking_id')
+  getOrderByTrackingNumber(@Param('tracking_id') tracking_id: number) {
+    return this.ordersService.getOrderByIdOrTrackingNumber(tracking_id);
+  }
+
   @Put(':id')
-  async update(
-    @Param('id') id: string,
-    @Body() updateOrderDto: UpdateOrderDto,
-  ) {
-    this.logger.debug(
-      {
-        orderId: Number(id),
-      },
-      'Update order request received',
-    );
-    const order = await this.ordersService.update(+id, updateOrderDto);
-
-    const data = plainToInstance(OrderResponseDto, order, {
-      excludeExtraneousValues: true,
-    });
-
-    return new SuccessResponseDto<OrderResponseDto>({
-      message: 'Order updated successfully',
-      statusCode: 200,
-      data,
-    });
+  update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
+    return this.ordersService.update(+id, updateOrderDto);
   }
 
-  @ApiOperation({ summary: 'Delete a order by id' })
-  @ApiResponse({
-    status: 201,
-    description: 'The order has been successfully deleted.',
-  })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    this.logger.debug(
-      {
-        orderId: Number(id),
-      },
-      'Delete order request received',
-    );
-
-    await this.ordersService.remove(+id);
-
-    return new SuccessResponseDto({
-      message: 'Order deleted successfully',
-      statusCode: 200,
-      data: null,
-    });
+  remove(@Param('id') id: string) {
+    return this.ordersService.remove(+id);
   }
 
   @Post('checkout/verify')
-  async verify(@Body() verifyOrderDto: any) {
-    const result = await this.ordersService.verify(verifyOrderDto);
+  verifyCheckout(@Query() query: CheckoutVerificationDto) {
+    return this.ordersService.verifyCheckout(query);
+  }
+  @Post('/payment')
+  @HttpCode(200)
+  async submitPayment(@Body() orderPaymentDto: OrderPaymentDto): Promise<void> {
+    const { tracking_number } = orderPaymentDto;
+    const order: Order = await this.ordersService.getOrderByIdOrTrackingNumber(
+      tracking_number,
+    );
+    switch (order.payment_gateway.toString().toLowerCase()) {
+      case 'stripe':
+        this.ordersService.stripePay(order);
+        break;
+      case 'paypal':
+        this.ordersService.paypalPay(order);
+        break;
+      default:
+        break;
+    }
+    this.ordersService.processChildrenOrder(order);
+  }
+}
 
-    return new SuccessResponseDto({
-      message: 'Order verify successfully',
-      statusCode: 200,
-      data: result,
-    });
+@Controller('order-status')
+export class OrderStatusController {
+  constructor(private readonly ordersService: OrdersService) {}
+
+  @Post()
+  create(@Body() createOrderStatusDto: CreateOrderStatusDto) {
+    return this.ordersService.createOrderStatus(createOrderStatusDto);
+  }
+
+  @Get()
+  findAll(@Query() query: GetOrderStatusesDto) {
+    return this.ordersService.getOrderStatuses(query);
+  }
+
+  @Get(':param')
+  findOne(@Param('param') param: string, @Query('language') language: string) {
+    return this.ordersService.getOrderStatus(param, language);
+  }
+
+  @Put(':id')
+  update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
+    return this.ordersService.update(+id, updateOrderDto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.ordersService.remove(+id);
+  }
+}
+
+@Controller('downloads')
+export class OrderFilesController {
+  constructor(private ordersService: OrdersService) {}
+
+  @Get()
+  async getOrderFileItems(
+    @Query() query: GetOrderFilesDto,
+  ): Promise<OrderFilesPaginator> {
+    return this.ordersService.getOrderFileItems(query);
+  }
+
+  @Post('digital_file')
+  async getDigitalFileDownloadUrl(
+    @Body('digital_file_id', ParseIntPipe) digitalFileId: number,
+  ) {
+    return this.ordersService.getDigitalFileDownloadUrl(digitalFileId);
+  }
+}
+
+@Controller('export-order-url')
+export class OrderExportController {
+  constructor(private ordersService: OrdersService) {}
+
+  @Get()
+  async orderExport(@Query('shop_id') shop_id: string) {
+    return this.ordersService.exportOrder(shop_id);
+  }
+}
+
+@Controller('download-invoice-url')
+export class DownloadInvoiceController {
+  constructor(private ordersService: OrdersService) {}
+
+  @Post()
+  async downloadInvoiceUrl(@Body('shop_id') shop_id: string) {
+    return this.ordersService.downloadInvoiceUrl(shop_id);
   }
 }

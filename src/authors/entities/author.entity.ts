@@ -1,34 +1,20 @@
-import { CoreEntity } from 'src/common/entities/core.entity';
-import { Column, Entity } from 'typeorm';
+import { CoreEntity } from '../../common/entities/core.entity';
+import { Attachment } from '../../common/entities/attachment.entity';
+import { ShopSocials } from '../../settings/entities/setting.entity';
 
-@Entity()
 export class Author extends CoreEntity {
-  @Column()
-  name: string;
-
-  @Column()
-  slug?: string;
-
-  @Column()
-  quote?: string;
-
-  @Column()
   bio?: string;
-
-  @Column()
   born?: string;
-
-  @Column()
+  cover_image?: Attachment;
   death?: string;
-
-  @Column()
-  language: string;
-
-  @Column('simple-json', { default: ['en'] })
-  translated_languages: string[];
-
-  constructor(item?: Partial<Author>) {
-    super();
-    Object.assign(this, item);
-  }
+  image?: Attachment;
+  is_approved?: boolean;
+  languages?: string;
+  name: string;
+  products_count?: number;
+  quote?: string;
+  slug?: string;
+  socials?: ShopSocials;
+  language?: string;
+  translated_languages?: string[];
 }

@@ -1,41 +1,27 @@
-import { Category } from 'src/categories/entities/category.entity';
+import { Attachment } from 'src/common/entities/attachment.entity';
 import { CoreEntity } from 'src/common/entities/core.entity';
-import { Manufacturer } from 'src/manufacturers/entities/manufacturer.entity';
-import { Product } from 'src/products/entities/product.entity';
-import { Tag } from 'src/tags/entities/tag.entity';
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity()
 export class Type extends CoreEntity {
-  @Column()
   name: string;
-
-  @Column()
   slug: string;
-
-  @Column()
+  image: Attachment;
   icon: string;
-
-  @Column()
+  banners?: Banner[];
+  promotional_sliders?: Attachment[];
+  settings?: TypeSettings;
   language: string;
-
-  @Column('simple-json', { default: ['en'] })
   translated_languages: string[];
+}
 
-  @OneToMany(() => Category, (category) => category.type)
-  categories: Category[];
+export class Banner {
+  id: number;
+  title?: string;
+  description?: string;
+  image: Attachment;
+}
 
-  @OneToMany(() => Manufacturer, (manufacturer) => manufacturer.type)
-  manufacturers: Manufacturer[];
-
-  @OneToMany(() => Tag, (tag) => tag.type)
-  tags: Tag[];
-
-  @OneToMany(() => Product, (product) => product.type)
-  products: Product[];
-
-  constructor(item?: Partial<Type>) {
-    super();
-    Object.assign(this, item);
-  }
+export class TypeSettings {
+  isHome: boolean;
+  layoutType: string;
+  productCard: string;
 }

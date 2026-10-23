@@ -1,15 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { PartialType } from '@nestjs/swagger';
+import { CreateProfileDto } from './create-profile.dto';
 
-export class UpdateProfileDto {
-  @ApiProperty({
-    description: 'The bio of the profile',
-    example: 'shop owner',
-  })
-  bio: string;
-
-  @ApiProperty({
-    description: 'The contact of the profile',
-    example: '+94113123888',
-  })
-  contact: string;
-}
+export class UpdateProfileDto extends PartialType(CreateProfileDto) {}

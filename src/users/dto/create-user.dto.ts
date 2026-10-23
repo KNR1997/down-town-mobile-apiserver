@@ -1,34 +1,20 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { CustomerResponseDto } from 'src/customers/dto/get-customer.dto';
-import { UserResponseDto } from './get-users.dto';
+import { PickType } from '@nestjs/swagger';
+import { CreateAddressDto } from 'src/addresses/dto/create-address.dto';
+import { User } from '../entities/user.entity';
+import { CreateProfileDto } from './create-profile.dto';
 
-export class CreateUserDto {
-  @ApiProperty({
-    description: 'The name of the user',
-    example: 'john',
-  })
-  name: string;
-
-  @ApiProperty({
-    description: 'The email of the user',
-    example: 'john@gmail.com',
-  })
-  email: string;
-
-  @ApiProperty({
-    description: 'The password of the user',
-    example: 'Xsdwwe=-21313',
-  })
-  password: string;
+enum Permission {
+  SUPER_ADMIN = 'Super admin',
+  STORE_OWNER = 'Store owner',
+  STAFF = 'Staff',
+  CUSTOMER = 'Customer',
 }
-
-export class CreateUserResponseDto {
-  @ApiProperty({ example: 'User created successfully' })
-  message: string;
-
-  @ApiProperty({ example: 201 })
-  statusCode: number;
-
-  @ApiProperty({ type: UserResponseDto })
-  data: UserResponseDto;
+export class CreateUserDto extends PickType(User, [
+  'name',
+  'email',
+  'password',
+]) {
+  address: CreateAddressDto[];
+  profile: CreateProfileDto;
+  permission: Permission = Permission.CUSTOMER;
 }

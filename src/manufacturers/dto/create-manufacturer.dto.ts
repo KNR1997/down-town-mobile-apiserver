@@ -1,40 +1,19 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { OmitType } from '@nestjs/swagger';
+import { Manufacturer } from '../entities/manufacturer.entity';
 
-export class CreateManufacturerDto {
-  @ApiProperty({
-    description: 'The name of the category',
-    example: 'Grocery',
-  })
-  @IsString()
-  name: string;
-
-  @ApiProperty({
-    description: 'The slug of the category',
-    example: 'grocery',
-  })
-  @IsString()
-  @IsOptional()
-  slug?: string;
-
-  @ApiProperty({
-    description: 'The description of the category',
-    example: 'Some descriptions here',
-  })
-  @IsString()
-  @IsOptional()
-  description?: string;
-
-  @ApiProperty({
-    description: 'The language of the category',
-    example: 'en',
-  })
-  @IsString()
-  language: string;
-
-  @ApiProperty({
-    description: 'The Type id of the Category',
-    example: 1,
-  })
-  type_id: number;
+export class CreateManufacturerDto extends OmitType(Manufacturer, [
+  'id',
+  'cover_image',
+  'description',
+  'image',
+  'name',
+  'products_count',
+  'slug',
+  'socials',
+  'type',
+  'type_id',
+  'website',
+  'translated_languages',
+]) {
+  shop_id?: string;
 }

@@ -1,148 +1,82 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
+  ChangePasswordDto,
+  ForgetPasswordDto,
   LoginDto,
-  LoginResponseDto,
-  MeResponseDto,
+  OtpDto,
+  OtpLoginDto,
   RegisterDto,
-  RegisterResponseDto,
+  ResetPasswordDto,
+  SocialLoginDto,
+  VerifyForgetPasswordDto,
+  VerifyOtpDto,
 } from './dto/create-auth.dto';
-import { AuthGuard } from './guards/auth.guard';
-import {
-  ApiBearerAuth,
-  ApiConflictResponse,
-  ApiCreatedResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiUnauthorizedResponse,
-} from '@nestjs/swagger';
-import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
-import { plainToInstance } from 'class-transformer';
-import { ShopsService } from 'src/shops/shops.service';
-import { UpdateEmailDto } from './dto/update-email.dto';
-import { UsersService } from 'src/users/users.service';
 
-@Controller('')
+@Controller()
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly shopsService: ShopsService,
-    private readonly usersService: UsersService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  @ApiOperation({ summary: 'Register new user' })
-  @ApiCreatedResponse({
-    description: 'User registered successfully',
-    type: RegisterResponseDto,
-  })
-  @ApiConflictResponse({
-    description: 'User with email already exists.',
-  })
-  async createAccount(@Body() registerDto: RegisterDto) {
-    const user = await this.authService.register(registerDto);
-
-    const data = plainToInstance(RegisterResponseDto, user, {
-      excludeExtraneousValues: true,
-    });
-
-    return new SuccessResponseDto({
-      message: 'User registered successfully',
-      statusCode: 201,
-      data,
-    });
+  createAccount(@Body() registerDto: RegisterDto) {
+    return this.authService.register(registerDto);
   }
-
   @Post('token')
-  @ApiOperation({ summary: 'Login user' })
-  @ApiOkResponse({
-    description: 'Login successfully',
-    type: LoginResponseDto,
-  })
-  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
-  async login(@Body() loginDto: LoginDto) {
-    const result = await this.authService.authenticate(loginDto);
-
-    const data = plainToInstance(LoginResponseDto, result, {
-      excludeExtraneousValues: true,
-    });
-
-    return new SuccessResponseDto({
-      message: 'Login successfully',
-      statusCode: 200,
-      data: {
-        ...data,
-        permissions: result.permissions,
-        role: result.role,
-      },
-    });
+  login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
   }
-
-  @ApiBearerAuth()
-  @UseGuards(AuthGuard)
-  @Get('me')
-  @ApiOperation({ summary: 'Logged in user details' })
-  @ApiOkResponse({
-    description: 'Logged in user details retrieve successfully.',
-    type: MeResponseDto,
-  })
-  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
-  async getUserInfo(@Request() request) {
-    const requestUser = request.user;
-
-    const user = await this.usersService.findOne(requestUser.userId);
-    const shops = await this.shopsService.getMyShops(request.user.userId);
-
-    const data = plainToInstance(
-      MeResponseDto,
-      {
-        ...user,
-        shops,
-      },
-      {
-        excludeExtraneousValues: true,
-      },
-    );
-
-    return new SuccessResponseDto({
-      message: 'Logged in user details retrieve successfully.',
-      statusCode: 200,
-      data,
-    });
+  @Post('social-login-token')
+  socialLogin(@Body() socialLoginDto: SocialLoginDto) {
+    return this.authService.socialLogin(socialLoginDto);
   }
-
+  @Post('otp-login')
+  otpLogin(@Body() otpLoginDto: OtpLoginDto) {
+    return this.authService.otpLogin(otpLoginDto);
+  }
+  @Post('send-otp-code')
+  sendOtpCode(@Body() otpDto: OtpDto) {
+    return this.authService.sendOtpCode(otpDto);
+  }
+  @Post('verify-otp-code')
+  verifyOtpCode(@Body() verifyOtpDto: VerifyOtpDto) {
+    return this.authService.verifyOtpCode(verifyOtpDto);
+  }
+  @Post('forget-password')
+  forgetPassword(@Body() forgetPasswordDto: ForgetPasswordDto) {
+    return this.authService.forgetPassword(forgetPasswordDto);
+  }
+  @Post('reset-password')
+  resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
+  }
+  @Post('change-password')
+  changePassword(@Body() changePasswordDto: ChangePasswordDto) {
+    return this.authService.changePassword(changePasswordDto);
+  }
   @Post('logout')
-  @ApiOperation({ summary: 'Logout user' })
-  @ApiOkResponse({
-    description: 'Logout successfully',
-  })
-  async logout() {
-    return new SuccessResponseDto({
-      message: 'Logout successfully',
-      statusCode: 200,
-    });
+  async logout(): Promise<boolean> {
+    return true;
+  }
+  @Post('verify-forget-password-token')
+  verifyForgetPassword(
+    @Body() verifyForgetPasswordDto: VerifyForgetPasswordDto,
+  ) {
+    return this.authService.verifyForgetPasswordToken(verifyForgetPasswordDto);
   }
 
-  @ApiBearerAuth()
-  @UseGuards(AuthGuard)
-  @Post('update-email')
-  @ApiOperation({ summary: 'Update email' })
-  @ApiOkResponse({
-    description: 'Email updated successfully.',
-    type: MeResponseDto,
-  })
-  async updateEmail(
-    @Request() request,
-    @Body() updateEmailDto: UpdateEmailDto,
-  ) {
-    const userId = request.user.userId;
-    await this.authService.updateEmail(userId, updateEmailDto);
+  @Get('me')
+  me() {
+    return this.authService.me();
+  }
+  @Post('add-points')
+  addWalletPoints(@Body() addPointsDto: any) {
+    return this.authService.me();
+  }
+  @Post('contact-us')
+  contactUs(@Body() addPointsDto: any) {
+    return {
+      success: true,
+      message: 'Thank you for contacting us. We will get back to you soon.',
+    };
   }
 }

@@ -63,15 +63,13 @@ export function paginate(
     per_page: pageSize,
     first_page_url: `${APP_URL}${url}&page=1`,
     last_page_url: `${APP_URL}${url}&page=${totalPages}`,
-    next_page_url: '',
-    prev_page_url: '',
-    // next_page_url:
-    //   totalPages > current_page
-    //     ? `${APP_URL}${url}&page=${Number(current_page) + 1}`
-    //     : null,
-    // prev_page_url:
-    //   totalPages > current_page
-    //     ? `${APP_URL}${url}&page=${current_page}`
-    //     : null,
+    next_page_url:
+      totalPages > current_page
+        ? `${APP_URL}${url}&page=${Number(current_page) + 1}`
+        : null,
+    prev_page_url:
+      totalPages > current_page
+        ? `${APP_URL}${url}&page=${current_page}`
+        : null,
   };
 }

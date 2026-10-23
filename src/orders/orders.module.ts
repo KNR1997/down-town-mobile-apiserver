@@ -1,24 +1,25 @@
 import { Module } from '@nestjs/common';
+import { AuthModule } from 'src/auth/auth.module';
+import { PaymentModule } from 'src/payment/payment.module';
+import {
+  DownloadInvoiceController,
+  OrderExportController,
+  OrderFilesController,
+  OrdersController,
+  OrderStatusController,
+} from './orders.controller';
 import { OrdersService } from './orders.service';
-import { OrdersController } from './orders.controller';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Order } from './entities/order.entity';
-import { InvoicesModule } from 'src/invoices/invoices.module';
-import { PaymentsModule } from 'src/payments/payments.module';
-import { UsersModule } from 'src/users/users.module';
-import { ProductsModule } from 'src/products/products.module';
-import { CustomersModule } from 'src/customers/customers.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Order]),
-    InvoicesModule,
-    PaymentsModule,
-    UsersModule,
-    ProductsModule,
-    CustomersModule,
+  imports: [AuthModule, PaymentModule],
+  controllers: [
+    OrdersController,
+    OrderStatusController,
+    OrderFilesController,
+    OrderExportController,
+    DownloadInvoiceController,
   ],
-  controllers: [OrdersController],
   providers: [OrdersService],
+  exports: [OrdersService],
 })
 export class OrdersModule {}

@@ -1,128 +1,161 @@
+import { Injectable } from '@nestjs/common';
 import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { RegisterDto } from './dto/create-auth.dto';
-import { UsersService } from 'src/users/users.service';
-import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
+  AuthResponse,
+  ChangePasswordDto,
+  ForgetPasswordDto,
+  LoginDto,
+  CoreResponse,
+  RegisterDto,
+  ResetPasswordDto,
+  VerifyForgetPasswordDto,
+  SocialLoginDto,
+  OtpLoginDto,
+  OtpResponse,
+  VerifyOtpDto,
+  OtpDto,
+} from './dto/create-auth.dto';
+import { v4 as uuidv4 } from 'uuid';
+import { plainToClass } from 'class-transformer';
 import { User } from 'src/users/entities/user.entity';
-import { UpdateEmailDto } from './dto/update-email.dto';
-import { UpdateUserDto } from 'src/users/dto/update-user.dto';
-import { PermissionType, RoleType } from 'src/common/enums';
-
-type AuthInput = { email: string; password: string };
-type SignInData = { userId: number; name: string; email: string };
-type AuthResult = {
-  token: string;
-  name: string;
-  userId: number;
-  username: string;
-};
-type AuthenticateResult = {
-  token: string;
-  name: string;
-  userId: number;
-  role: RoleType;
-  permissions: PermissionType[];
-};
+import usersJson from '@db/users.json';
+const users = plainToClass(User, usersJson);
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private usersService: UsersService,
-    private jwtService: JwtService,
-  ) {}
-
-  async register(createUserInput: RegisterDto): Promise<User> {
-    const exists = await this.usersService.findUserByEmail(
-      createUserInput.email,
-    );
-
-    if (exists) {
-      throw new ConflictException(
-        `User with email "${createUserInput.email}" already exists`,
-      );
-    }
-
-    return await this.usersService.create({
-      name: createUserInput.name,
-      email: createUserInput.email,
-      password: createUserInput.password,
-      role: RoleType.SUPER_ADMIN,
-      permissions: [PermissionType.SUPER_ADMIN],
-    });
-  }
-
-  async authenticate(input: AuthInput): Promise<AuthenticateResult> {
-    const user = await this.usersService.findUserByEmail(input.email);
-
-    if (!user) {
-      throw new UnauthorizedException();
-    }
-
-    const tokenPayload = {
-      sub: user.id,
-      name: user.name,
-      email: user.email,
+  private users: User[] = users;
+  async register(createUserInput: RegisterDto): Promise<AuthResponse> {
+    const user: User = {
+      id: uuidv4(),
+      ...users[0],
+      ...createUserInput,
+      created_at: new Date(),
+      updated_at: new Date(),
     };
 
-    const token = await this.jwtService.signAsync(tokenPayload);
-
+    this.users.push(user);
     return {
-      token: token,
-      userId: user.id,
-      name: user.name,
-      role: user.role,
-      permissions: user.permissions,
+      token: 'jwt token',
+      permissions: ['super_admin', 'customer'],
     };
   }
-
-  async validateUser(input: AuthInput): Promise<SignInData | null> {
-    const user = await this.usersService.findUserByEmail(input.email);
-
-    if (user && (await bcrypt.compare(input.password, user.password))) {
+  async login(loginInput: LoginDto): Promise<AuthResponse> {
+    console.log(loginInput);
+    if (loginInput.email === 'admin@demo.com') {
       return {
-        userId: user.id,
-        name: user.name,
-        email: user.email,
+        token: 'jwt token',
+        permissions: ['store_owner', 'super_admin'],
+        role: 'super_admin',
+      };
+    } else if (['store_owner@demo.com', 'vendor@demo.com'].includes(loginInput.email)) {
+      return {
+        token: 'jwt token',
+        permissions: ['store_owner', 'customer'],
+        role: 'store_owner',
+      };
+    } else {
+      return {
+        token: 'jwt token',
+        permissions: ['customer'],
+        role: 'customer',
       };
     }
-
-    return null;
   }
-
-  async signIn(user: SignInData): Promise<AuthResult> {
-    const tokenPayload = {
-      sub: user.userId,
-      name: user.name,
-      email: user.email,
-    };
-
-    const token = await this.jwtService.signAsync(tokenPayload);
+  async changePassword(
+    changePasswordInput: ChangePasswordDto,
+  ): Promise<CoreResponse> {
+    console.log(changePasswordInput);
 
     return {
-      token,
-      name: user.name,
-      username: user.email,
-      userId: user.userId,
+      success: true,
+      message: 'Password change successful',
+    };
+  }
+  async forgetPassword(
+    forgetPasswordInput: ForgetPasswordDto,
+  ): Promise<CoreResponse> {
+    console.log(forgetPasswordInput);
+
+    return {
+      success: true,
+      message: 'Password change successful',
+    };
+  }
+  async verifyForgetPasswordToken(
+    verifyForgetPasswordTokenInput: VerifyForgetPasswordDto,
+  ): Promise<CoreResponse> {
+    console.log(verifyForgetPasswordTokenInput);
+
+    return {
+      success: true,
+      message: 'Password change successful',
+    };
+  }
+  async resetPassword(
+    resetPasswordInput: ResetPasswordDto,
+  ): Promise<CoreResponse> {
+    console.log(resetPasswordInput);
+
+    return {
+      success: true,
+      message: 'Password change successful',
+    };
+  }
+  async socialLogin(socialLoginDto: SocialLoginDto): Promise<AuthResponse> {
+    console.log(socialLoginDto);
+    return {
+      token: 'jwt token',
+      permissions: ['super_admin', 'customer'],
+      role: 'customer',
+    };
+  }
+  async otpLogin(otpLoginDto: OtpLoginDto): Promise<AuthResponse> {
+    console.log(otpLoginDto);
+    return {
+      token: 'jwt token',
+      permissions: ['super_admin', 'customer'],
+      role: 'customer',
+    };
+  }
+  async verifyOtpCode(verifyOtpInput: VerifyOtpDto): Promise<CoreResponse> {
+    console.log(verifyOtpInput);
+    return {
+      message: 'success',
+      success: true,
+    };
+  }
+  async sendOtpCode(otpInput: OtpDto): Promise<OtpResponse> {
+    console.log(otpInput);
+    return {
+      message: 'success',
+      success: true,
+      id: '1',
+      provider: 'google',
+      phone_number: '+919494949494',
+      is_contact_exist: true,
     };
   }
 
-  async updateEmail(userId: number, updateEmailDto: UpdateEmailDto) {
-    const user = await this.usersService.findOne(userId);
-
-    if (!user) {
-      throw new NotFoundException(`User with id "${userId}" not found`);
-    }
-
-    const updateUserDto = new UpdateUserDto();
-
-    updateUserDto.name = user.name;
-    updateUserDto.email = updateEmailDto.email;
-
-    this.usersService.update(userId, updateUserDto);
+  // async getUsers({ text, first, page }: GetUsersArgs): Promise<UserPaginator> {
+  //   const startIndex = (page - 1) * first;
+  //   const endIndex = page * first;
+  //   let data: User[] = this.users;
+  //   if (text?.replace(/%/g, '')) {
+  //     data = fuse.search(text)?.map(({ item }) => item);
+  //   }
+  //   const results = data.slice(startIndex, endIndex);
+  //   return {
+  //     data: results,
+  //     paginatorInfo: paginate(data.length, page, first, results.length),
+  //   };
+  // }
+  // public getUser(getUserArgs: GetUserArgs): User {
+  //   return this.users.find((user) => user.id === getUserArgs.id);
+  // }
+  me(): User {
+    return this.users[0];
   }
+
+  // updateUser(id: number, updateUserInput: UpdateUserInput) {
+  //   return `This action updates a #${id} user`;
+  // }
 }

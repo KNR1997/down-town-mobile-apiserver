@@ -1,33 +1,19 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { PickType } from '@nestjs/swagger';
+import { Shop } from '../entities/shop.entity';
 
-export class CreateShopDto {
-  @ApiProperty({
-    description: 'The name of the shop',
-    example: 'ABC Shop',
-  })
-  @IsString()
-  name: string;
+export class CreateShopDto extends PickType(Shop, [
+  'name',
+  'address',
+  'description',
+  'cover_image',
+  'logo',
+  'settings',
+  'balance',
+]) {
+  categories: number[];
+}
 
-  @ApiProperty({
-    description: 'The slug of the shop',
-    example: 'abc-shop',
-  })
-  @IsString()
-  @IsOptional()
-  slug?: string;
-
-  @ApiProperty({
-    description: 'The description of the shop',
-    example: 'Some descriptions here',
-  })
-  @IsString()
-  @IsOptional()
-  description?: string;
-
-  // @ApiProperty({
-  //   description: 'The owner id of the shop',
-  //   example: 1,
-  // })
-  // owner_id: number;
+export class ApproveShopDto {
+  id: number;
+  admin_commission_rate: number;
 }
